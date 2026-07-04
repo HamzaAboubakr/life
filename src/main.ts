@@ -25,6 +25,18 @@ const STATUS_BAR = `
 
 const app = document.getElementById('app')!;
 
+// Kill iOS standalone rubber-band: allow a touch-drag only when it's inside a
+// scroll container (.cc-scroll) that can actually scroll; block it everywhere else.
+document.addEventListener('touchmove', (e) => {
+  let el = e.target as HTMLElement | null;
+  while (el && el !== document.body) {
+    if (el.classList?.contains('cc-scroll') &&
+        (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) return;
+    el = el.parentElement;
+  }
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
+
 function routeName(): string {
   return location.hash.replace(/^#/, '') || '/';
 }
