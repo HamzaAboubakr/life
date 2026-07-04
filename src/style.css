@@ -1,7 +1,8 @@
 /* Base + design keyframes/classes copied verbatim from Home.dc.html <style>. */
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 ::-webkit-scrollbar { display: none; }
-.cc-scroll { scrollbar-width: none; }
+/* Scroll only when content overflows; never let the bounce chain to the page. */
+.cc-scroll { scrollbar-width: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
 html, body { margin: 0; padding: 0; }
 body {
@@ -27,6 +28,8 @@ body {
   user-select: none;
 }
 @media (max-width: 440px) {
+  /* Lock the page on phones so only the in-app scroll container moves (no page rubber-band). */
+  html, body { height: 100%; width: 100%; overflow: hidden; position: fixed; overscroll-behavior: none; }
   body { align-items: stretch; }
   .frame { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
 }
