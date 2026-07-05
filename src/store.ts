@@ -18,16 +18,26 @@ export type LMEvent =
 let events: LMEvent[] = [];
 export function consumeEvents(): LMEvent[] { const e = events; events = []; return e; }
 
-function metricsOf(s: State): Partial<Record<Metric, number>> {
+export function computeMetrics(s: State): Partial<Record<Metric, number>> {
+  const ownedIds = Object.keys(s.owned);
   return {
     tasksCompleted: Object.keys(s.completed).length,
     streakDays: Math.max(s.streak.current, s.streak.longest),
-    coinsHeld: s.balance, coinsSpentTotal: s.spentTotal, purchases: s.purchases,
+    freezersUsed: 0, streakRepairs: 0,
+    level: toIndex(s.progression.rank, s.progression.tier) + 1,
+    coinsHeld: s.balance,
+    coinsEarnedTotal: s.balance + s.spentTotal,
+    coinsSpentTotal: s.spentTotal,
+    purchases: s.purchases,
     rankIndexReached: RANKS.indexOf(s.progression.rank),
     prestigeCount: s.progression.prestigeStars,
     xpTotal: cumulativeXpTo(toIndex(s.progression.rank, s.progression.tier)) + s.progression.xpCurrent,
+    chipsOwned: ownedIds.filter((k) => !k.startsWith('t_') && !k.startsWith('em_')).length,
+    tagsOwned: ownedIds.filter((k) => k.startsWith('t_')).length,
+    emblemsOwned: ownedIds.filter((k) => k.startsWith('em_')).length,
   };
 }
+const metricsOf = computeMetrics;
 
 export interface Progression {
   rank: RankName; tier: Tier; xpCurrent: number; xpNeeded: number; prestigeStars: number;

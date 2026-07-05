@@ -2,11 +2,11 @@
 // straight across), wired to real store data. Returns the inner scroll content.
 
 import {
-  ACHIEVEMENTS, RANKS, cumulativeXpTo, tierBoxes, toIndex,
-  type AchievementCategory, type Metric, type Tier,
+  ACHIEVEMENTS, tierBoxes, toIndex,
+  type AchievementCategory, type Tier,
 } from '../core';
 import { rgb, stepInfo, tcCss, tierStops, TEXTGRAD, rankHex } from '../paint';
-import { getState } from '../store';
+import { computeMetrics, getState } from '../store';
 import { asset, esc } from '../util';
 
 const CAT: Record<AchievementCategory, { color: string; img: string }> = {
@@ -19,31 +19,6 @@ const CAT: Record<AchievementCategory, { color: string; img: string }> = {
   Cosmetics: { color: '#E15586', img: asset('assets/areas/psychology.png') },
   Special: { color: '#6E52C8', img: asset('assets/shop/design.png') },
 };
-
-const PHRASE: Partial<Record<Metric, (t: number) => string>> = {
-  tasksCompleted: (t) => `Complete ${t} tasks.`,
-  tasksInOneDay: (t) => `Complete ${t} tasks in one day.`,
-  streakDays: (t) => `Reach a ${t}-day streak.`,
-  streakRepairs: (t) => `Repair a broken streak ${t > 1 ? `${t} times` : 'once'}.`,
-  freezersUsed: (t) => `Use ${t} streak freezers.`,
-  perfectDays: (t) => `Finish every task for ${t} full day${t > 1 ? 's' : ''}.`,
-  perfectWeeks: () => 'Complete every task for a full week.',
-  perfectMonths: () => 'Complete every task for a full month.',
-  overdueCleared: () => 'Clear all your overdue tasks.',
-  rankIndexReached: (t) => `Climb to ${RANKS[t] ?? 'the top'} rank.`,
-  prestigeCount: (t) => `Prestige ${t > 1 ? `${t} times` : 'once'}.`,
-  coinsHeld: (t) => `Hold ${t.toLocaleString()} coins at once.`,
-  coinsSpentTotal: (t) => `Spend ${t.toLocaleString()} coins in total.`,
-  purchases: (t) => `Make ${t} shop purchase${t > 1 ? 's' : ''}.`,
-  colorsOwned: (t) => `Own all ${t} category colors.`,
-  emblemsOwned: (t) => `Own ${t} emblems.`,
-  legendariesOwned: () => 'Own a Legendary cosmetic.',
-  xpTotal: (t) => `Earn ${t.toLocaleString()} total XP.`,
-  chainsBuilt: () => 'Build a linked-task chain.',
-  categoriesUsedInDay: (t) => `Use all ${t} categories in one day.`,
-  boostsUsed: (t) => `Use ${t} XP boosts.`,
-};
-const describe = (m: Metric, t: number) => PHRASE[m]?.(t) ?? `Reach ${t}.`;
 
 export function renderHome(): string {
   const s = getState();
@@ -64,19 +39,12 @@ export function renderHome(): string {
   }).join('');
 
   // metrics snapshot
-  const metrics: Partial<Record<Metric, number>> = {
-    tasksCompleted: Object.keys(s.completed).length,
-    streakDays: Math.max(s.streak.current, s.streak.longest),
-    coinsHeld: s.balance,
-    coinsSpentTotal: s.spentTotal,
-    rankIndexReached: RANKS.indexOf(p.rank),
-    prestigeCount: p.prestigeStars,
-    xpTotal: cumulativeXpTo(toIndex(p.rank, p.tier)) + p.xpCurrent,
-  };
+  const metrics = computeMetrics(s);
+  // Earned float above locked; catalog order preserved within each group (like the mock).
   const rows = ACHIEVEMENTS.map((a) => {
     const raw = metrics[a.metric] ?? 0;
     return { a, earned: raw >= a.target, pct: Math.min(1, a.target ? raw / a.target : 0), cur: Math.min(raw, a.target) };
-  }).sort((x, y) => Number(y.earned) - Number(x.earned) || y.pct - x.pct);
+  }).sort((x, y) => Number(y.earned) - Number(x.earned));
   const earnedCount = rows.filter((r) => r.earned).length;
 
   const ends = (info: typeof cur, badge: string) => `
@@ -112,7 +80,7 @@ export function renderHome(): string {
         </div>
         <div style="position:relative; z-index:2; flex:1; padding:16px 17px; display:flex; flex-direction:column; justify-content:center;">
           <div style="font-size:18px; font-weight:800; letter-spacing:-0.3px; color:${earned ? '#fff' : '#8A8A90'};">${esc(a.name)}</div>
-          <div style="margin-top:4px; font-size:13px; font-weight:600; line-height:1.35; color:${earned ? 'rgba(255,255,255,0.82)' : '#5C5C63'}; max-width:228px;">${esc(describe(a.metric, a.target))}</div>
+          <div style="margin-top:4px; font-size:13px; font-weight:600; line-height:1.35; color:${earned ? 'rgba(255,255,255,0.82)' : '#5C5C63'}; max-width:228px;">${esc(a.desc)}</div>
           ${bar}
         </div>
         ${lock}
