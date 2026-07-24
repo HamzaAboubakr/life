@@ -204,6 +204,57 @@ export function renderCalendar(): string {
     </div>`;
 }
 
+// ---- search overlay (verbatim) ----
+let searchOpen = false;
+let searchQuery = '';
+export const isSearchOpen = () => searchOpen;
+export const openSearch = () => { searchOpen = true; searchQuery = ''; };
+export const closeSearch = () => { searchOpen = false; searchQuery = ''; };
+export const setSearchQuery = (q: string) => { searchQuery = q; };
+
+export function renderSearch(): string {
+  if (!searchOpen) return '';
+  const q = searchQuery.trim().toLowerCase();
+  const results = q ? getState().tasks.filter((t) => t.title.toLowerCase().includes(q)) : [];
+  const cards = results.map((t, i) => taskCard(t, t.date, i)).join('');
+  const empty = q && results.length === 0 ? `
+    <div style="padding:60px 20px; text-align:center;">
+      <div style="width:76px; height:76px; border-radius:26px; background:#FFFFFF; border:1px solid rgba(60,60,67,0.08); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 6px 18px rgba(30,30,40,0.06);">
+        <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:36px; line-height:1; color:#C7C7CC;">search_off</span>
+      </div>
+      <div style="font-size:18px; font-weight:800;">No results</div>
+      <div style="margin-top:5px; font-size:14px; color:#8E8E93; font-weight:600;">Try a different search.</div>
+    </div>` : '';
+  return `
+    <div style="position:absolute; inset:0; z-index:86; background:#F2F2F7; display:flex; flex-direction:column; animation:ccSheetIn .3s cubic-bezier(.22,.9,.25,1);">
+      <div style="height:56px; flex:0 0 auto;"></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:11px; padding:6px 18px 12px;">
+        <div style="flex:1; display:flex; align-items:center; gap:8px; padding:11px 14px; border-radius:13px; background:rgba(120,120,128,0.14);">
+          <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'wght' 500; font-size:20px; line-height:1; color:#8E8E93;">search</span>
+          <input class="sheet-input" data-action="search-input" type="text" placeholder="Search tasks" value="${esc(searchQuery)}" style="flex:1; min-width:0; background:transparent; border:none; outline:none; color:#1C1C1E; font-family:-apple-system,system-ui,sans-serif; font-size:16px; font-weight:500;">
+        </div>
+        <div data-action="search-close" style="font-size:16px; font-weight:500; color:${AC}; cursor:pointer; white-space:nowrap;">Cancel</div>
+      </div>
+      <div class="cc-scroll" style="flex:1; overflow-y:auto; padding:8px 20px 30px;">${cards}${empty}</div>
+    </div>`;
+}
+
+// ---- loading skeleton (verbatim) ----
+const shim = 'background:linear-gradient(90deg,#E5E5EA 25%,#F1F1F4 50%,#E5E5EA 75%); background-size:600px 100%; animation:shimmer 1.3s linear infinite;';
+export function renderSkeleton(): string {
+  return `
+    <div id="skel" style="position:absolute; top:59px; left:0; right:0; bottom:0; z-index:22; background:#F2F2F7; padding:8px 20px 0; overflow:hidden;">
+      <div style="width:132px; height:34px; border-radius:10px; ${shim}"></div>
+      <div style="width:98px; height:14px; border-radius:6px; margin-top:10px; ${shim}"></div>
+      <div style="display:flex; gap:9px; margin:22px 0 24px;">
+        <div style="width:70px; height:38px; border-radius:999px; ${shim}"></div>
+        <div style="width:86px; height:38px; border-radius:999px; ${shim}"></div>
+        <div style="width:86px; height:38px; border-radius:999px; ${shim}"></div>
+      </div>
+      ${Array.from({ length: 5 }, () => `<div style="height:88px; border-radius:20px; margin-bottom:13px; ${shim}"></div>`).join('')}
+    </div>`;
+}
+
 // ---- shell: status bar + dynamic island + top blur (verbatim) ----
 export const STATUS_BAR = `
   <div style="position:absolute; top:0; left:0; right:0; height:59px; z-index:38; display:flex; align-items:center; justify-content:space-between; padding:14px 34px 0; pointer-events:none;">

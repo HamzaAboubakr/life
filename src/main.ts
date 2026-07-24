@@ -1,7 +1,8 @@
 import './style.css';
 import {
-  STATUS_BAR, renderNav, renderTasks, renderCalendar,
+  STATUS_BAR, renderNav, renderTasks, renderCalendar, renderSearch, renderSkeleton,
   getTab, setTab, setCat, setSel, getSel,
+  openSearch, closeSearch, setSearchQuery, isSearchOpen,
 } from './odyssey';
 import {
   openCreate, openEdit, openMonthFor, renderSheet, handleSheetAction, wireSheet, isSheetOpen,
@@ -30,8 +31,17 @@ function buildShell() {
       ${STATUS_BAR}
       <div id="scroll" class="cc-scroll" style="position:absolute; inset:0; overflow-y:auto; padding:66px 0 128px;"></div>
       <div id="nav"></div>
+      <div id="search"></div>
       <div id="sheet"></div>
+      ${renderSkeleton()}
     </div>`;
+  // skeleton fades out once the first paint settles (design: skFade)
+  setTimeout(() => {
+    const s = app.querySelector('#skel') as HTMLElement | null;
+    if (!s) return;
+    s.style.animation = 'skFade .35s ease forwards';
+    setTimeout(() => s.remove(), 380);
+  }, 550);
   const sc = app.querySelector('#scroll') as HTMLElement;
   sc.addEventListener('scroll', () => {
     const b = app.querySelector('#topblur') as HTMLElement | null;
@@ -47,6 +57,15 @@ function renderScreen() {
   if (nav) nav.innerHTML = renderNav();
 }
 
+function renderSearchLayer() {
+  const layer = app.querySelector('#search') as HTMLElement | null;
+  if (!layer) return;
+  const wasFocused = (document.activeElement as HTMLElement | null)?.dataset?.action === 'search-input';
+  layer.innerHTML = renderSearch();
+  const input = layer.querySelector('[data-action="search-input"]') as HTMLInputElement | null;
+  if (input) { input.focus(); if (wasFocused) input.setSelectionRange(input.value.length, input.value.length); }
+}
+
 function renderSheetLayer() {
   const layer = app.querySelector('#sheet') as HTMLElement | null;
   if (!layer) return;
@@ -57,10 +76,11 @@ function renderSheetLayer() {
 function render() {
   if (!built) buildShell();
   renderScreen();
+  renderSearchLayer();
   renderSheetLayer();
 }
 
-subscribe(() => renderScreen());
+subscribe(() => { renderScreen(); if (isSearchOpen()) renderSearchLayer(); });
 
 const sheetCtx = { setSel: (d: string) => { setSel(d); renderScreen(); } };
 
@@ -83,16 +103,21 @@ app.addEventListener('click', (e) => {
     case 'cat': if (cat) { setCat(cat); renderScreen(); } break;
     case 'cal-day': if (date) { setSel(date); renderScreen(); } break;
     case 'toggle': if (id) completeTask(id, date); break;
-    case 'open': if (id) { openEdit(id); renderSheetLayer(); } break;
+    case 'open': if (id) { if (isSearchOpen()) { closeSearch(); renderSearchLayer(); } openEdit(id); renderSheetLayer(); } break;
     case 'add': openCreate(getTab() === 'calendar' ? getSel() : undefined); renderSheetLayer(); break;
     case 'month-open': openMonthFor('sel', getSel().slice(0, 7)); renderSheetLayer(); break;
+    case 'search-open': openSearch(); renderSearchLayer(); break;
+    case 'search-close': closeSearch(); renderSearchLayer(); break;
   }
 });
 
 // keep typed text in the draft as you type (textareas/inputs re-render on other taps)
 app.addEventListener('input', (e) => {
   const el = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
-  if (el?.dataset.action?.startsWith('sh-')) handleSheetAction(el.dataset.action, el, sheetCtx);
+  const a = el?.dataset.action;
+  if (!a || !el) return;
+  if (a.startsWith('sh-')) handleSheetAction(a, el, sheetCtx);
+  else if (a === 'search-input') { setSearchQuery((el as HTMLInputElement).value); renderSearchLayer(); }
 });
 
 render();
