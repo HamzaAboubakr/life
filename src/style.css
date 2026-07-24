@@ -1,80 +1,60 @@
-/* Base + design keyframes/classes copied verbatim from Home.dc.html <style>. */
+/* Base + keyframes/classes copied VERBATIM from the Odyssey "Tasks & Calendar" design
+   <style> block (light-mode iOS). Do not restyle. */
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 ::-webkit-scrollbar { display: none; }
-/* Scroll only when content overflows; never let the bounce chain to the page. */
-.cc-scroll { scrollbar-width: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.cc-scroll { scrollbar-width: none; overscroll-behavior: contain; }
+.fade-b { -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 40px), transparent 100%); mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 40px), transparent 100%); }
+.wheel { scrollbar-width: none; -ms-overflow-style: none; -webkit-mask-image: linear-gradient(180deg, transparent, #000 26%, #000 74%, transparent); mask-image: linear-gradient(180deg, transparent, #000 26%, #000 74%, transparent); }
+.wheel::-webkit-scrollbar { display: none; }
+@keyframes ccSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ccSheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ccSheetOut { from { transform: translateY(0); } to { transform: translateY(101%); } }
+@keyframes ccModalIn { 0% { transform: translateY(100%) scale(.93); opacity: .5; } 55% { opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes ccScrimOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes listInA { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes listInB { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes lkInA { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes lkInB { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes ccRise { from { transform: translateY(2.5%); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+@keyframes ccScrim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scrFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ckPop { 0% { transform: scale(.4); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@keyframes shimmer { 0% { background-position: -320px 0; } 100% { background-position: 320px 0; } }
+@keyframes skFade { from { opacity: 1; } to { opacity: 0; } }
+@keyframes flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+@keyframes hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+.gname { -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.nt-input { caret-color: #007AFF; }
+.nt-input::placeholder { color: rgba(60, 60, 67, 0.4); }
+.sheet-input { caret-color: #007AFF; }
+.sheet-input::placeholder { color: rgba(60, 60, 67, 0.35); }
 
+/* ---- app frame (design's phone frame) ---- */
 html, body { margin: 0; padding: 0; }
 body {
-  background: #0a0a0b;
+  background: #B9B9BE;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Nunito', -apple-system, sans-serif;
-  color: #fff;
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', sans-serif;
+  color: #1C1C1E;
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
-
-/* The phone frame — 393x852 for desktop preview; fills the screen on a real phone. */
 .frame {
   width: 393px;
   height: 852px;
-  background: #000;
+  background: #F2F2F7;
   position: relative;
   overflow: hidden;
-  border-radius: 38px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  border-radius: 46px;
+  box-shadow: 0 30px 80px rgba(30, 28, 40, 0.3);
   user-select: none;
 }
 @media (max-width: 440px) {
-  /* Lock the page on phones so only the in-app scroll container moves (no page rubber-band). */
-  html, body { height: 100%; width: 100%; overflow: hidden; position: fixed; overscroll-behavior: none; }
+  html, body { height: 100%; width: 100%; overflow: hidden; position: fixed; overscroll-behavior: none; background: #F2F2F7; }
   body { align-items: stretch; }
   .frame { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
 }
-
-/* Material Symbols icon helper (variable font loaded in index.html). */
-.ms {
-  font-family: 'Material Symbols Rounded';
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: normal;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  display: inline-block;
-}
-.ms.fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-
-@keyframes ccPop { 0% { transform: scale(0.82); opacity: 0; } 62% { transform: scale(1.04); } 100% { transform: scale(1); opacity: 1; } }
-@keyframes ccFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes ccToast { 0% { transform: translateY(10px) scale(0.9); opacity: 0; } 16% { transform: translateY(0) scale(1); opacity: 1; } 76% { opacity: 1; } 100% { transform: translateY(-30px); opacity: 0; } }
-@keyframes flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-@keyframes hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
-.gname { -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-@keyframes ccGlow { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 0.9; transform: scale(1.04); } }
-@keyframes opPulse { 0% { transform: scale(0.8); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
-@keyframes toastIn { 0% { transform: translateY(-155%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-@keyframes tcHolo { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-
-.nav-pill {
-  position: absolute; left: 0; width: 0; top: 8px; height: 48px; border-radius: 19px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -2px 5px rgba(0, 0, 0, 0.12), 0 5px 14px rgba(0, 0, 0, 0.28);
-  pointer-events: none; z-index: 0;
-  transition: left .46s cubic-bezier(.34, 1.2, .45, 1), width .46s cubic-bezier(.34, 1.2, .45, 1);
-}
-
-/* Skeleton loaders */
-@keyframes skSweep { 0% { transform: translateX(-165%); } 100% { transform: translateX(165%); } }
-.sk { position: relative; overflow: hidden; background: rgba(255, 255, 255, 0.055); border-radius: 10px; flex-shrink: 0; }
-.sk::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.13) 50%, transparent 68%); animation: skSweep 1.75s cubic-bezier(.4, 0, .6, 1) infinite; }
-.sk-pill { border-radius: 9999px; }
-.sk-circle { border-radius: 50%; }
-
 a { text-decoration: none; color: inherit; }

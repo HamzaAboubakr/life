@@ -6,7 +6,7 @@
 import type { CategoryKey, Priority, Recurrence } from '../core';
 import { addTask, updateTask, getState } from '../store';
 import { todayISO } from '../util';
-import { catLabel, catStyle } from './tasks';
+import { CAT_STYLE } from '../odyssey';
 
 const AC = '#34CEE9';
 const CATS: CategoryKey[] = ['work', 'health', 'personal', 'finance', 'learning'];
@@ -73,7 +73,7 @@ const REC_OPTS: { kind: string; label: string }[] = [
 export function renderSheet(): string {
   if (!open || !draft) return '';
   const d = draft;
-  const cs = d.category ? catStyle[d.category] : null;
+  const cs = d.category ? CAT_STYLE[d.category] : null;
   const p = pri[d.priority];
   const topBg = cs ? `rgb(${cs.bg})` : '#141416';
   const dateSubline = `${FDOW[parseISO(d.date).getDay()]}, ${MON[parseISO(d.date).getMonth()]} ${parseISO(d.date).getDate()}` + (d.timeStart != null ? ` · ${fmtMin(d.timeStart)}` : '');
@@ -85,7 +85,7 @@ export function renderSheet(): string {
         <div style="position:absolute; top:0; bottom:0; left:0; width:80%; background:linear-gradient(to right, rgb(${cs.bg}) 0%, rgba(${cs.bg},0) 100%);"></div>
       </div>
     </div>
-    <div style="position:absolute; top:12px; right:13px; z-index:3; border-radius:6px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.28);"><span style="padding:3px 9px; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; background:#EDEDF0; color:#0B1014;">${catLabel[d.category!]}</span></div>
+    <div style="position:absolute; top:12px; right:13px; z-index:3; border-radius:6px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.28);"><span style="padding:3px 9px; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; background:#EDEDF0; color:#0B1014;">${CAT_STYLE[d.category!].label}</span></div>
     <div data-action="ts-prio" style="position:absolute; bottom:12px; right:12px; z-index:3; width:31px; height:31px; border-radius:50%; background:rgba(16,18,24,0.62); backdrop-filter:blur(10px) saturate(150%); border:1px solid rgba(255,255,255,0.3); box-shadow:inset 0 1px 0.5px rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span class="ms fill" style="font-size:19px; color:${p.color}; transform:${d.priority === 'medium' ? 'translateX(1.5px)' : 'none'};">${p.icon}</span></div>` : '';
 
   // recurrence options (shown when recurring is on)
@@ -138,7 +138,7 @@ export function renderSheet(): string {
           <div data-action="ts-open-card" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:15px 16px; cursor:pointer;">
             <div style="font-size:16px; font-weight:800;">Category</div>
             <div style="margin-top:8px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:${d.category ? '#fff' : '#76767E'};">
-              ${d.category ? `<span style="width:10px; height:10px; border-radius:50%; background:rgb(${catStyle[d.category].bg}); flex:0 0 auto;"></span>${catLabel[d.category]}` : `<span class="ms" style="font-size:16px; color:#76767E;">layers</span>None`}
+              ${d.category ? `<span style="width:10px; height:10px; border-radius:50%; background:rgb(${CAT_STYLE[d.category].bg}); flex:0 0 auto;"></span>${CAT_STYLE[d.category].label}` : `<span class="ms" style="font-size:16px; color:#76767E;">layers</span>None`}
             </div>
           </div>
           <div data-action="ts-prio" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:15px 16px; cursor:pointer;">
@@ -161,10 +161,10 @@ export function renderSheet(): string {
 
 function cardSheet(d: Draft): string {
   const cards = CATS.map((c) => {
-    const cs = catStyle[c], on = d.category === c;
+    const cs = CAT_STYLE[c], on = d.category === c;
     return `<div data-action="ts-pick-card" data-cat="${c}" style="position:relative; min-height:76px; border-radius:16px; overflow:hidden; background:rgb(${cs.bg}); box-shadow:${on ? '0 0 0 2.5px #fff' : 'inset 0 0 0 1.5px rgba(255,255,255,0.08)'}; cursor:pointer; display:flex; align-items:center; padding:0 16px;">
       <div style="position:absolute; top:0; bottom:0; right:-4px; width:46%; max-width:120px;"><img src="${cs.img}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"><div style="position:absolute; inset:0; background:linear-gradient(to right, rgb(${cs.bg}) 20%, rgba(${cs.bg},0));"></div></div>
-      <span style="position:relative; z-index:1; font-size:18px; font-weight:800; color:#fff;">${catLabel[c]}</span>
+      <span style="position:relative; z-index:1; font-size:18px; font-weight:800; color:#fff;">${CAT_STYLE[c].label}</span>
     </div>`;
   }).join('');
   return sheetShell('Category', `<div style="display:flex; flex-direction:column; gap:10px;">${cards}</div>`);
