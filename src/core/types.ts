@@ -26,6 +26,7 @@ export interface Task {
   recurrence?: Recurrence;      // absent = one-off
   tagIds: string[];            // real first-class tags, not category-inferred
   linkedChainId?: string;      // membership in an ordered linked-task chain
+  linkedIds?: string[];        // ordered linked-task chain (design: Linked Tasks)
   createdAt: string;           // ISO timestamp
 }
 

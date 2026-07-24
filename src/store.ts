@@ -56,7 +56,7 @@ export interface State {
 
 export interface NewTaskInput {
   title: string; category: CategoryKey; priority?: Priority; date: string;
-  timeStart?: number; timeEnd?: number; recurrence?: Recurrence; tagIds?: string[]; notes?: string;
+  timeStart?: number; timeEnd?: number; recurrence?: Recurrence; tagIds?: string[]; notes?: string; linkedIds?: string[];
 }
 
 const KEY = 'lm_web_state_v1';
@@ -123,7 +123,7 @@ export function addTask(input: NewTaskInput): Task {
     id: makeId(), title: input.title, category: input.category,
     priority: input.priority ?? 'medium', notes: input.notes, date: input.date,
     time: input.timeStart != null ? { startMinutes: input.timeStart, endMinutes: input.timeEnd } : undefined,
-    recurrence: input.recurrence, tagIds: input.tagIds ?? [], createdAt: new Date().toISOString(),
+    recurrence: input.recurrence, tagIds: input.tagIds ?? [], linkedIds: input.linkedIds ?? [], createdAt: new Date().toISOString(),
   };
   state = { ...state, tasks: [...state.tasks, task] };
   commit();

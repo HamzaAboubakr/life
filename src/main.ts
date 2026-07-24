@@ -1,19 +1,21 @@
 import './style.css';
 import {
   STATUS_BAR, renderNav, renderTasks, renderCalendar,
-  getTab, setTab, setCat, setSel,
+  getTab, setTab, setCat, setSel, getSel,
 } from './odyssey';
-import { openCreate, openEdit, renderSheet, handleSheetAction, wireSheet, isSheetOpen } from './screens/task-sheet';
+import {
+  openCreate, openEdit, openMonthFor, renderSheet, handleSheetAction, wireSheet, isSheetOpen,
+} from './sheet';
 import { completeTask, subscribe } from './store';
 
 const app = document.getElementById('app')!;
 
 // Kill iOS standalone rubber-band: allow a touch-drag only when it's inside a
-// scroll container (.cc-scroll) that can actually scroll; block it everywhere else.
+// scroll container that can actually scroll; block it everywhere else.
 document.addEventListener('touchmove', (e) => {
   let el = e.target as HTMLElement | null;
   while (el && el !== document.body) {
-    if (el.classList?.contains('cc-scroll') &&
+    if ((el.classList?.contains('cc-scroll') || el.classList?.contains('wheel')) &&
         (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) return;
     el = el.parentElement;
   }
@@ -31,7 +33,6 @@ function buildShell() {
       <div id="sheet"></div>
     </div>`;
   const sc = app.querySelector('#scroll') as HTMLElement;
-  // top blur fades in once scrolled (design behavior)
   sc.addEventListener('scroll', () => {
     const b = app.querySelector('#topblur') as HTMLElement | null;
     if (b) b.style.opacity = sc.scrollTop > 6 ? '1' : '0';
@@ -49,8 +50,8 @@ function renderScreen() {
 function renderSheetLayer() {
   const layer = app.querySelector('#sheet') as HTMLElement | null;
   if (!layer) return;
-  layer.innerHTML = renderSheet();
-  wireSheet(layer);
+  layer.innerHTML = renderSheet(getSel());
+  wireSheet(layer, renderSheetLayer);
 }
 
 function render() {
@@ -61,15 +62,19 @@ function render() {
 
 subscribe(() => renderScreen());
 
+const sheetCtx = { setSel: (d: string) => { setSel(d); renderScreen(); } };
+
 app.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
   if (!el) return;
   const { action, cat, id, date } = el.dataset;
   if (!action) return;
 
-  if (action.startsWith('ts-')) {
-    const changed = handleSheetAction(action, el);
-    if (changed) { renderSheetLayer(); if (!isSheetOpen()) renderScreen(); }
+  if (action.startsWith('sh-')) {
+    if (handleSheetAction(action, el, sheetCtx)) {
+      renderSheetLayer();
+      if (!isSheetOpen()) renderScreen();
+    }
     return;
   }
   switch (action) {
@@ -79,9 +84,15 @@ app.addEventListener('click', (e) => {
     case 'cal-day': if (date) { setSel(date); renderScreen(); } break;
     case 'toggle': if (id) completeTask(id, date); break;
     case 'open': if (id) { openEdit(id); renderSheetLayer(); } break;
-    case 'add': openCreate(); renderSheetLayer(); break;
-    // 'search-open' / 'month-open' land in the next pass (design sheets)
+    case 'add': openCreate(getTab() === 'calendar' ? getSel() : undefined); renderSheetLayer(); break;
+    case 'month-open': openMonthFor('sel', getSel().slice(0, 7)); renderSheetLayer(); break;
   }
+});
+
+// keep typed text in the draft as you type (textareas/inputs re-render on other taps)
+app.addEventListener('input', (e) => {
+  const el = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
+  if (el?.dataset.action?.startsWith('sh-')) handleSheetAction(el.dataset.action, el, sheetCtx);
 });
 
 render();
