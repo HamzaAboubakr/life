@@ -2,13 +2,45 @@
 // "Tasks & Calendar" design (detail sheet, link picker, card picker, tag picker,
 // tag creator, month picker, wheel time picker). Only data is wired to the store.
 
-import type { CategoryKey, Task } from './core';
-import { addTask, updateTask, removeTask, getState } from './store';
-import { AC, AC_RGB, CAT_STYLE } from './odyssey';
-import { esc, todayISO } from './util';
+import type { Task } from './core';
+import { addTask, updateTask, removeTask, getState, addCard, updateCard, deleteCard, type CardDef } from './store';
+import { AC, AC_RGB, cardFor } from './odyssey';
+import { asset, esc, todayISO } from './util';
+
+// design library (verbatim from the handoff's designLib)
+const DESIGN_LIB: { label: string; rgb: string; img: string }[] = [
+  { label: 'Business', rgb: '92,164,235', img: 'assets/shop/business.png' },
+  { label: 'Philosophy', rgb: '109,140,219', img: 'assets/shop/philosophy.png' },
+  { label: 'Design Tech', rgb: '120,117,242', img: 'assets/shop/design.png' },
+  { label: 'Biology', rgb: '41,179,107', img: 'assets/areas/biology.png' },
+  { label: 'Chemistry', rgb: '110,94,253', img: 'assets/areas/chemistry.png' },
+  { label: 'English', rgb: '97,199,254', img: 'assets/areas/english.png' },
+  { label: 'History', rgb: '165,110,80', img: 'assets/areas/history.png' },
+  { label: 'Psychology', rgb: '251,109,134', img: 'assets/areas/psychology.png' },
+  { label: 'Economics', rgb: '253,188,111', img: 'assets/subjects/economics.png' },
+  { label: 'Physics', rgb: '60,150,250', img: 'assets/subjects/physics.png' },
+  { label: 'Computer Sci', rgb: '233,90,168', img: 'assets/subjects/computer-science.png' },
+  { label: 'Geography', rgb: '81,206,195', img: 'assets/subjects/geography.png' },
+];
+// chip styles (verbatim subset of the handoff's _chipStylesList)
+interface ChipStyle { id: string; name: string; bg: string; color: string; border?: string; shadow?: string; bgSize?: string; anim?: string }
+const CHIP_STYLES: ChipStyle[] = [
+  { id: 'white', name: 'Classic', bg: '#F4F4F6', color: '#16171B', shadow: '0 2px 7px rgba(0,0,0,0.28)' },
+  { id: 'cyan', name: 'Cyan', bg: '#2AD1E5', color: '#04222A' },
+  { id: 'green', name: 'Mint', bg: '#34D399', color: '#04231A' },
+  { id: 'slate', name: 'Slate', bg: '#64748B', color: '#F1F5F9' },
+  { id: 'coral', name: 'Coral', bg: '#FF6B5C', color: '#2E0A06' },
+  { id: 'purple', name: 'Violet', bg: '#7C5CFF', color: '#FFFFFF' },
+  { id: 'voltage', name: 'Voltage', bg: 'linear-gradient(135deg,#FDE047,#FACC15)', color: '#2E2600', shadow: '0 0 14px rgba(250,204,21,0.85)' },
+  { id: 'venom', name: 'Venom', bg: 'linear-gradient(135deg,#A3E635,#4D7C0F)', color: '#0E2600', shadow: '0 0 14px rgba(132,204,22,0.85)' },
+  { id: 'fuchsia', name: 'Fuchsia', bg: 'linear-gradient(135deg,#F0509C,#C21A6B)', color: '#FFFFFF', shadow: '0 0 14px rgba(240,80,156,0.85)' },
+  { id: 'cobalt', name: 'Cobalt', bg: 'linear-gradient(135deg,#3B82F6,#1E40AF)', color: '#FFFFFF', shadow: '0 0 14px rgba(59,130,246,0.9)' },
+  { id: 'pearl', name: 'Pearl', bg: 'linear-gradient(115deg,#f5f3ff,#e0f2fe 30%,#fce7f3 50%,#ede9fe 70%,#f5f3ff)', color: '#6D28D9', bgSize: '200% 100%', anim: 'flow 7s linear infinite' },
+  { id: 'prism', name: 'Prism', bg: 'conic-gradient(from 0deg,#ff5c8a,#ffd45c,#5cff9d,#5cc9ff,#b45cff,#ff5c8a)', color: '#141414', anim: 'hue 9s linear infinite' },
+];
+const chipStyle = (id?: string) => CHIP_STYLES.find((c) => c.id === id) ?? CHIP_STYLES[0];
 
 const AC_TINT = `rgba(${AC_RGB},0.1)`;
-const CATS: CategoryKey[] = ['work', 'health', 'personal', 'finance', 'learning'];
 const PRIOS = [
   { label: 'Low', icon: 'spa', color: '#34B36B' },
   { label: 'Medium', icon: 'flag', color: '#F59E0B' },
@@ -29,13 +61,18 @@ const keyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSta
 
 interface TimeSpec { mode: 'single' | 'range' | 'allday'; sh: number; sm: number; sap: 'AM' | 'PM'; eh: number; em: number; eap: 'AM' | 'PM' }
 interface Draft {
-  id: string | null; title: string; category: CategoryKey | null; tag: string | null;
+  id: string | null; title: string; category: string | null; tag: string | null;
   priority: number; recurring: boolean; date: string; time: TimeSpec; notes: string; linkedIds: string[];
 }
 
 let open = false;
 let isCreate = false;
-let picker: null | 'card' | 'tag' | 'tagCreate' | 'link' | 'month' | 'time' = null;
+let picker: null | 'card' | 'tag' | 'tagCreate' | 'link' | 'month' | 'time' | 'design' | 'naming' = null;
+// category builder scratch
+let pendingDesign: { label: string; rgb: string; img: string } | null = null;
+let nameDraft = '';
+let chipDraft = 'white';
+let editingCardIdx: number | null = null;
 let draft: Draft | null = null;
 let viewYM = todayISO().slice(0, 7);
 let monthTarget: 'sel' | 'dt' = 'dt';
@@ -46,7 +83,7 @@ let dragFrom: number | null = null;
 let sheetAnimPending = false;
 let pickerAnimPending = false;
 const sheetAnim = () => { const a = sheetAnimPending ? 'animation:ccSheetIn .34s cubic-bezier(.22,.9,.25,1);' : ''; sheetAnimPending = false; return a; };
-const pickAnim = () => (pickerAnimPending ? '${pickAnim()}' : '');
+const pickAnim = () => (pickerAnimPending ? 'animation:ccModalIn .38s cubic-bezier(.22,.9,.25,1);' : '');
 const scrimAnim = () => (pickerAnimPending ? 'animation:ccScrim .22s ease;' : '');
 const consumePicker = () => { pickerAnimPending = false; };
 
@@ -84,7 +121,7 @@ export function renderSheet(selDate: string): string {
   if (picker === 'month' && !open) return monthPicker(selDate);
   if (!open || !draft) return '';
   const d = draft;
-  const cs = d.category ? CAT_STYLE[d.category] : null;
+  const cs = d.category ? cardFor(d.category) : null;
   const p = PRIOS[d.priority];
   const dt = parseISO(d.date);
   const tagHex = TAGS.find((t) => t.name === d.tag)?.hex ?? '#8E8E93';
@@ -96,13 +133,13 @@ export function renderSheet(selDate: string): string {
 
   const linked = d.linkedIds.map((id) => getState().tasks.find((t) => t.id === id)).filter(Boolean) as Task[];
   const linkMembers = linked.map((t, i) => {
-    const c = CAT_STYLE[t.category];
+    const c = cardFor(t.category);
     return `<div draggable="true" data-drag="${i}" style="position:relative; display:flex; align-items:center; gap:9px; min-height:58px; border-radius:16px; overflow:hidden; background:rgb(${c.bg}); box-shadow:0 4px 12px rgba(30,30,40,0.1); animation:lkInA .34s cubic-bezier(.22,.9,.25,1) ${i * 40}ms both; transition:box-shadow .2s ease, opacity .2s ease;">
       <span style="flex:0 0 auto; padding-left:9px; font-family:'Material Symbols Rounded'; font-size:20px; line-height:1; color:rgba(255,255,255,0.75); cursor:grab;">drag_indicator</span>
       <span style="flex:0 0 auto; display:inline-flex; align-items:center; gap:2px; padding:3px 8px; border-radius:999px; background:rgba(10,12,16,0.5); color:#fff; font-size:11px; font-weight:900;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:13px; line-height:1;">link</span>${i + 1}</span>
       <div style="flex:1; min-width:0;">
         <div style="font-size:14px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(t.title)}</div>
-        <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,0.84); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(CAT_STYLE[t.category].label)}</div>
+        <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,0.84); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(cardFor(t.category).label)}</div>
       </div>
       <div data-action="sh-unlink" data-id="${t.id}" style="flex:0 0 auto; margin-right:9px; margin-left:2px; width:26px; height:26px; border-radius:50%; background:rgba(0,0,0,0.28); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-size:15px; line-height:1; color:#fff;">close</span></div>
     </div>`;
@@ -202,6 +239,8 @@ export function renderSheet(selDate: string): string {
       </div>
     </div>
     ${picker === 'card' ? cardPicker(d) : ''}
+    ${picker === 'design' ? designPicker() : ''}
+    ${picker === 'naming' ? namingSheet() : ''}
     ${picker === 'tag' ? tagPicker(d) : ''}
     ${picker === 'tagCreate' ? tagCreate() : ''}
     ${picker === 'link' ? linkPicker(d) : ''}
@@ -216,23 +255,80 @@ const sheetBox = (inner: string, pad = '') =>
 const grabber = `<div style="width:38px; height:5px; border-radius:3px; background:rgba(60,60,67,0.2); margin:12px auto 0;"></div>`;
 
 function cardPicker(d: Draft): string {
-  const cards = CATS.map((c) => {
-    const cs = CAT_STYLE[c], on = d.category === c;
-    return `<div data-action="sh-pick-card" data-cat="${c}" style="position:relative; display:flex; align-items:center; min-height:84px; border-radius:18px; overflow:hidden; background:rgb(${cs.bg}); box-shadow:0 6px 16px rgba(30,30,40,0.1); cursor:pointer;">
+  const cards = getState().cards.map((c, i) => {
+    const on = d.category === c.name;
+    const cst = chipStyle(c.styleId);
+    return `<div data-action="sh-pick-card" data-cat="${esc(c.name)}" style="position:relative; display:flex; align-items:center; min-height:84px; border-radius:18px; overflow:hidden; background:rgb(${c.rgb}); box-shadow:0 6px 16px rgba(30,30,40,0.1); cursor:pointer;">
+      <div data-action="sh-card-edit" data-idx="${i}" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); z-index:6; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,0.3); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 0; font-size:18px; line-height:1; color:#fff;">edit</span></div>
       <div style="position:absolute; top:0; bottom:0; right:-4px; width:46%; max-width:150px;">
         <div style="position:relative; height:100%; width:100%;">
-          <img src="${cs.img}" alt="" loading="lazy" style="position:absolute; inset:0; height:100%; width:100%; object-fit:cover; object-position:center top;">
-          <div style="position:absolute; top:0; bottom:0; left:0; width:80%; background:linear-gradient(to right, rgb(${cs.bg}) 0%, rgba(${cs.bg},0) 100%);"></div>
+          <img src="${asset(c.img)}" alt="" loading="lazy" style="position:absolute; inset:0; height:100%; width:100%; object-fit:cover; object-position:center top;">
+          <div style="position:absolute; top:0; bottom:0; left:0; width:80%; background:linear-gradient(to right, rgb(${c.rgb}) 0%, rgba(${c.rgb},0) 100%);"></div>
         </div>
       </div>
-      <span style="position:absolute; top:11px; right:12px; z-index:4; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; padding:3px 9px; border-radius:6px; background:#FFFFFF; color:#1C1C1E; box-shadow:0 2px 8px rgba(30,30,40,0.18); white-space:nowrap;">${cs.label}</span>
+      <span style="position:absolute; top:11px; right:12px; z-index:4; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; padding:3px 9px; border-radius:6px; background:${cst.bg}; background-size:${cst.bgSize ?? 'auto'}; color:${cst.color}; border:${cst.border ?? 'none'}; box-shadow:${cst.shadow ?? 'none'}; animation:${cst.anim ?? 'none'}; white-space:nowrap; max-width:104px; overflow:hidden; text-overflow:ellipsis;">${esc(c.name)}</span>
       ${on ? `<div style="position:absolute; inset:0; border-radius:18px; box-shadow:inset 0 0 0 3px #fff; z-index:3; pointer-events:none;"></div>
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:4; width:27px; height:27px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 9px rgba(0,0,0,0.4);"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:18px; line-height:1; color:#111;">check</span></div>` : ''}
     </div>`;
   }).join('');
   return scrim(70, sheetBox(`${grabber}
     <div style="padding:14px 20px 12px;"><div style="font-size:20px; font-weight:800; letter-spacing:-0.4px;">Choose a Card</div></div>
-    <div class="cc-scroll" style="overflow-y:auto; padding:4px 18px 28px; display:flex; flex-direction:column; gap:11px;">${cards}</div>`));
+    <div class="cc-scroll" style="overflow-y:auto; padding:4px 18px 28px; display:flex; flex-direction:column; gap:11px;">${cards}
+      <div data-action="sh-new-category" style="margin-top:3px; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px; border-radius:16px; border:1.5px dashed rgba(60,60,67,0.25); color:#636366; font-weight:700; font-size:15px; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 0; font-size:20px; line-height:1;">add</span>New Category</div>
+    </div>`));
+}
+
+function designPicker(): string {
+  const cards = DESIGN_LIB.map((t, i) => `<div data-action="sh-pick-design" data-idx="${i}" style="position:relative; height:80px; border-radius:16px; overflow:hidden; background:rgb(${t.rgb}); box-shadow:0 4px 12px rgba(30,30,40,0.1); cursor:pointer;">
+      <div style="position:absolute; top:0; bottom:0; right:-4px; width:52%;">
+        <div style="position:relative; height:100%; width:100%;">
+          <img src="${asset(t.img)}" alt="" loading="lazy" style="position:absolute; inset:0; height:100%; width:100%; object-fit:cover; object-position:center top;">
+          <div style="position:absolute; top:0; bottom:0; left:0; width:82%; background:linear-gradient(to right, rgb(${t.rgb}) 0%, rgba(${t.rgb},0) 100%);"></div>
+        </div>
+      </div>
+    </div>`).join('');
+  return scrim(76, sheetBox(`
+    <div style="padding:18px 20px 6px;">
+      <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px;">Pick a design</div>
+      <div style="margin-top:3px; font-size:13px; font-weight:500; color:#8E8E93;">Choose a card design for your new category.</div>
+    </div>
+    <div class="cc-scroll" style="overflow-y:auto; padding:12px 18px 28px; display:grid; grid-template-columns:1fr 1fr; gap:11px;">${cards}</div>`));
+}
+
+function namingSheet(): string {
+  const pd = pendingDesign;
+  if (!pd) return '';
+  const cst = chipStyle(chipDraft);
+  const grid = CHIP_STYLES.map((c) => {
+    const on = chipDraft === c.id;
+    return `<div data-action="sh-chip-style" data-id="${c.id}" style="position:relative; display:flex; align-items:center; gap:8px; padding:9px 11px; border-radius:12px; background:${on ? 'rgba(0,122,255,0.08)' : 'rgba(120,120,128,0.08)'}; box-shadow:${on ? 'inset 0 0 0 2px ' + AC : 'inset 0 0 0 1px rgba(60,60,67,0.1)'}; transition:background .2s ease, box-shadow .2s ease; cursor:pointer;">
+      <span style="flex:0 0 auto; display:inline-flex; align-items:center; padding:3px 8px; border-radius:5px; font-size:9.5px; font-weight:900; letter-spacing:0.5px; background:${c.bg}; background-size:${c.bgSize ?? 'auto'}; color:${c.color}; border:${c.border ?? 'none'}; box-shadow:${c.shadow ?? 'none'}; animation:${c.anim ?? 'none'};">CHIP</span>
+      <div style="flex:1 1 auto; min-width:0; font-size:12.5px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#1C1C1E;">${c.name}</div>
+      ${on ? `<span style="flex:0 0 auto; margin-left:auto; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:${AC};"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:12px; color:#fff;">check</span></span>`
+      : `<span style="flex:0 0 auto; margin-left:auto; display:inline-flex; width:18px; height:18px; border-radius:50%; border:1.5px solid rgba(60,60,67,0.22);"></span>`}
+    </div>`;
+  }).join('');
+  return scrim(80, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; display:flex; flex-direction:column; ${pickAnim()} padding:18px 18px 30px; max-height:90vh; overflow-y:auto;">
+    <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 2px 14px;">${editingCardIdx != null ? 'Edit Category' : 'Name your category'}</div>
+    <div style="position:relative; display:flex; align-items:center; min-height:96px; border-radius:18px; overflow:hidden; background:rgb(${pd.rgb}); box-shadow:0 6px 16px rgba(30,30,40,0.1);">
+      <div style="position:absolute; top:0; bottom:0; right:-4px; width:46%; max-width:150px;">
+        <div style="position:relative; height:100%; width:100%;">
+          <img src="${asset(pd.img)}" alt="" loading="lazy" style="position:absolute; inset:0; height:100%; width:100%; object-fit:cover; object-position:center top;">
+          <div style="position:absolute; top:0; bottom:0; left:0; width:80%; background:linear-gradient(to right, rgb(${pd.rgb}) 0%, rgba(${pd.rgb},0) 100%);"></div>
+        </div>
+      </div>
+      <div style="position:relative; z-index:2; flex:1; padding:18px;"></div>
+      ${nameDraft.trim() ? `<span style="position:absolute; top:11px; right:12px; z-index:4; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; padding:3px 9px; border-radius:6px; background:${cst.bg}; background-size:${cst.bgSize ?? 'auto'}; color:${cst.color}; border:${cst.border ?? 'none'}; box-shadow:${cst.shadow ?? 'none'}; animation:${cst.anim ?? 'none'}; white-space:nowrap; max-width:104px; overflow:hidden; text-overflow:ellipsis;">${esc(nameDraft)}</span>` : ''}
+      <div data-action="sh-change-design" style="position:absolute; left:12px; bottom:12px; z-index:5; display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border-radius:999px; background:rgba(0,0,0,0.4); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.28); font-size:12px; font-weight:700; color:#fff; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 0; font-size:15px; line-height:1;">cached</span>Change design</div>
+    </div>
+    <input class="sheet-input" data-action="sh-name-input" type="text" placeholder="Enter Category..." value="${esc(nameDraft)}" style="margin-top:14px; width:100%; background:rgba(120,120,128,0.1); border:1px solid rgba(60,60,67,0.1); border-radius:14px; padding:14px 16px; color:#1C1C1E; font-family:-apple-system,system-ui,sans-serif; font-size:16px; font-weight:600; outline:none;">
+    <div style="margin-top:16px; font-size:11px; font-weight:800; letter-spacing:1px; color:#8E8E93; text-transform:uppercase;">Chip Style</div>
+    <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:9px;">${grid}</div>
+    <div style="display:flex; gap:11px; margin-top:18px;">
+      ${editingCardIdx != null ? `<div data-action="sh-card-delete" style="flex:0 0 auto; width:52px; display:flex; align-items:center; justify-content:center; border-radius:14px; background:rgba(255,59,48,0.1); cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:20px; line-height:1; color:#FF3B30;">delete</span></div>` : ''}
+      <div data-action="sh-name-confirm" style="flex:1; padding:14px; border-radius:14px; background:${AC}; color:#fff; font-size:15px; font-weight:700; text-align:center; cursor:pointer;">${editingCardIdx != null ? 'Save Category' : 'Create Category'}</div>
+    </div>
+  </div>`);
 }
 
 function tagPicker(d: Draft): string {
@@ -271,10 +367,10 @@ function tagCreate(): string {
 function linkPicker(d: Draft): string {
   const cands = getState().tasks.filter((t) => t.id !== d.id && !d.linkedIds.includes(t.id));
   const rows = cands.map((t) => `<div data-action="sh-link-add" data-id="${t.id}" style="display:flex; align-items:center; gap:11px; padding:12px 13px; border-radius:14px; background:#F7F7F9; border:1px solid rgba(60,60,67,0.07); cursor:pointer;">
-      <span style="flex:0 0 auto; width:11px; height:11px; border-radius:50%; background:rgb(${CAT_STYLE[t.category].bg});"></span>
+      <span style="flex:0 0 auto; width:11px; height:11px; border-radius:50%; background:rgb(${cardFor(t.category).bg});"></span>
       <div style="flex:1; min-width:0;">
         <div style="font-size:14.5px; font-weight:700; color:#1C1C1E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(t.title)}</div>
-        <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:#8E8E93; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${CAT_STYLE[t.category].label}</div>
+        <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:#8E8E93; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cardFor(t.category).label}</div>
       </div>
     </div>`).join('');
   return scrim(74, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; max-height:82%; display:flex; flex-direction:column; padding:20px 18px 0; ${pickAnim()}">
@@ -292,7 +388,7 @@ function monthPicker(dateISO: string): string {
   const blanks = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate();
   const byDate = new Map<string, string[]>();
   for (const t of getState().tasks) {
-    const arr = byDate.get(t.date) ?? []; arr.push(`rgb(${CAT_STYLE[t.category].bg})`); byDate.set(t.date, arr);
+    const arr = byDate.get(t.date) ?? []; arr.push(`rgb(${cardFor(t.category).bg})`); byDate.set(t.date, arr);
   }
   const cells: string[] = [];
   for (let b = 0; b < blanks; b++) cells.push('<div></div>');
@@ -424,9 +520,10 @@ function syncInputs() {
 export function handleSheetAction(action: string, el: HTMLElement, ctx: { setSel: (d: string) => void }): boolean {
   if (action === 'sh-noop') return false;
   if (action === 'sh-title' || action === 'sh-notes' || action === 'sh-tag-name') { syncInputs(); return false; }
+  if (action === 'sh-name-input') { nameDraft = (el as HTMLInputElement).value; return false; }
   syncInputs();
   const d = draft;
-  if (['sh-card-open','sh-tag-open','sh-tag-create','sh-link-open','sh-date','sh-time'].includes(action)) pickerAnimPending = true;
+  if (['sh-card-open','sh-tag-open','sh-tag-create','sh-link-open','sh-date','sh-time','sh-new-category','sh-pick-design','sh-card-edit','sh-change-design'].includes(action)) pickerAnimPending = true;
   switch (action) {
     case 'sh-cancel': open = false; picker = null; draft = null; return true;
     case 'sh-picker-close': picker = null; return true;
@@ -442,9 +539,45 @@ export function handleSheetAction(action: string, el: HTMLElement, ctx: { setSel
       picker = 'tag'; return true;
     }
     case 'sh-link-open': picker = 'link'; return true;
+    case 'sh-new-category': pendingDesign = null; nameDraft = ''; chipDraft = 'white'; editingCardIdx = null; picker = 'design'; return true;
+    case 'sh-change-design': picker = 'design'; return true;
+    case 'sh-pick-design': {
+      const i = Number(el.dataset.idx || 0);
+      pendingDesign = DESIGN_LIB[i]; picker = 'naming'; return true;
+    }
+    case 'sh-name-input': nameDraft = (el as HTMLInputElement).value; return false;
+    case 'sh-chip-style': chipDraft = el.dataset.id || 'white'; return true;
+    case 'sh-card-edit': {
+      const i = Number(el.dataset.idx || 0);
+      const c = getState().cards[i]; if (!c) return false;
+      editingCardIdx = i; pendingDesign = { label: c.name, rgb: c.rgb, img: c.img };
+      nameDraft = c.name; chipDraft = c.styleId || 'white'; picker = 'naming'; return true;
+    }
+    case 'sh-card-delete': {
+      if (editingCardIdx == null) return false;
+      deleteCard(editingCardIdx); editingCardIdx = null; pendingDesign = null; picker = 'card'; return true;
+    }
+    case 'sh-name-confirm': {
+      const nm = (document.querySelector('[data-action="sh-name-input"]') as HTMLInputElement | null)?.value ?? nameDraft;
+      const name = nm.trim() || 'New Category';
+      if (!pendingDesign) return false;
+      const card: CardDef = { name, rgb: pendingDesign.rgb, img: pendingDesign.img, styleId: chipDraft };
+      if (editingCardIdx != null) {
+        const prev = getState().cards[editingCardIdx];
+        updateCard(editingCardIdx, card);
+        if (prev && prev.name !== name) {
+          for (const t of getState().tasks) if (t.category === prev.name) updateTask(t.id, { category: name });
+        }
+        if (d && d.category === prev?.name) d.category = name;
+      } else {
+        addCard(card);
+        if (d) d.category = name;
+      }
+      editingCardIdx = null; pendingDesign = null; picker = 'card'; return true;
+    }
     case 'sh-link-add': if (d && el.dataset.id) { d.linkedIds.push(el.dataset.id); picker = null; } return true;
     case 'sh-unlink': if (d && el.dataset.id) d.linkedIds = d.linkedIds.filter((x) => x !== el.dataset.id); return true;
-    case 'sh-pick-card': if (d) d.category = (el.dataset.cat as CategoryKey) || null; picker = null; return true;
+    case 'sh-pick-card': if (d) d.category = el.dataset.cat || null; picker = null; return true;
     case 'sh-pick-tag': if (d) d.tag = el.dataset.tag || null; picker = null; return true;
     case 'sh-clear-tag': if (d) d.tag = null; picker = null; return true;
     case 'sh-date': monthTarget = 'dt'; viewYM = (d?.date ?? todayISO()).slice(0, 7); picker = 'month'; return true;

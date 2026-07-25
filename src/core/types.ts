@@ -18,7 +18,7 @@ export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
 export interface Task {
   id: string;
   title: string;
-  category: CategoryKey;
+  category: string;          // card name (user-definable)
   priority: Priority;
   notes?: string;
   date: string;                 // ISO date the task is scheduled for

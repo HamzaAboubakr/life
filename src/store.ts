@@ -7,7 +7,7 @@ import {
   registerCompletion, emptyStreak, occursOn,
   ACHIEVEMENTS, evaluate, cumulativeXpTo, toIndex, RANKS,
   type Task, type RankName, type Tier, type StreakState,
-  type Recurrence, type CategoryKey, type Priority, type Metric, type AchievementCategory,
+  type Recurrence, type Priority, type Metric, type AchievementCategory,
 } from './core';
 import { makeId, todayISO } from './util';
 
@@ -43,6 +43,16 @@ export interface Progression {
   rank: RankName; tier: Tier; xpCurrent: number; xpNeeded: number; prestigeStars: number;
 }
 
+export interface CardDef { name: string; rgb: string; img: string; styleId?: string }
+
+export const DEFAULT_CARDS: CardDef[] = [
+  { name: 'Work', rgb: '92,164,235', img: 'assets/shop/business.png' },
+  { name: 'Health', rgb: '41,179,107', img: 'assets/areas/biology.png' },
+  { name: 'Personal', rgb: '251,109,134', img: 'assets/areas/psychology.png' },
+  { name: 'Finance', rgb: '253,188,111', img: 'assets/subjects/economics.png' },
+  { name: 'Learning', rgb: '109,140,219', img: 'assets/shop/philosophy.png' },
+];
+
 export interface State {
   balance: number;
   spentTotal: number;
@@ -52,10 +62,12 @@ export interface State {
   completed: Record<string, true>; // `${taskId}|${date}`
   owned: Record<string, true>;     // purchased cosmetic ids (chips/tags/emblems)
   purchases: number;               // total shop purchases (incl. consumables)
+  cards: CardDef[];                // category cards (seeded, user can add/edit/delete)
 }
 
 export interface NewTaskInput {
-  title: string; category: CategoryKey; priority?: Priority; date: string;
+  title: string; priority?: Priority; date: string;
+  category: string;
   timeStart?: number; timeEnd?: number; recurrence?: Recurrence; tagIds?: string[]; notes?: string; linkedIds?: string[];
 }
 
@@ -67,6 +79,7 @@ function initial(): State {
     balance: 0, spentTotal: 0,
     progression: { rank: 'Bronze', tier: 1, xpCurrent: 0, xpNeeded: xpNeededFor('Bronze', 1), prestigeStars: 0 },
     streak: emptyStreak(), tasks: [], completed: {}, owned: {}, purchases: 0,
+    cards: DEFAULT_CARDS.map((c) => ({ ...c })),
   };
 }
 
@@ -77,7 +90,13 @@ function load(): State {
     const s = JSON.parse(raw) as State;
     // recompute derived xpNeeded in case the curve changed
     s.progression.xpNeeded = xpNeededFor(s.progression.rank, s.progression.tier);
-    return { ...initial(), ...s };
+    const merged = { ...initial(), ...s };
+    if (!merged.cards || !merged.cards.length) merged.cards = DEFAULT_CARDS.map((c) => ({ ...c }));
+    // migrate legacy lowercase category keys ('work') to card names ('Work')
+    const byLower = new Map(merged.cards.map((c) => [c.name.toLowerCase(), c.name]));
+    merged.tasks = merged.tasks.map((t) =>
+      byLower.has(t.category) ? { ...t, category: byLower.get(t.category)! } : t);
+    return merged;
   } catch {
     return initial();
   }
@@ -133,6 +152,14 @@ export function addTask(input: NewTaskInput): Task {
 export function updateTask(id: string, patch: Partial<Omit<Task, 'id' | 'createdAt'>>) {
   state = { ...state, tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) };
   commit();
+}
+
+export function addCard(c: CardDef) { state = { ...state, cards: [...state.cards, c] }; commit(); }
+export function updateCard(idx: number, c: CardDef) {
+  state = { ...state, cards: state.cards.map((x, i) => (i === idx ? c : x)) }; commit();
+}
+export function deleteCard(idx: number) {
+  state = { ...state, cards: state.cards.filter((_, i) => i !== idx) }; commit();
 }
 
 export function removeTask(id: string) {

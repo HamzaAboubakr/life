@@ -2,7 +2,7 @@
 // Markup/styles transcribed VERBATIM from the "Tasks & Calendar" Claude Design
 // handoff (light-mode iOS). Do not restyle; only data is wired to the real store.
 
-import type { CategoryKey, Priority, Task } from './core';
+import type { Priority, Task } from './core';
 import { occursOn } from './core';
 import { getState, isDone } from './store';
 import { asset, esc, todayISO } from './util';
@@ -12,22 +12,16 @@ export const AC_RGB = '0,122,255';
 export const AC_GLOW = `rgba(${AC_RGB},0.4)`;
 const COMPLETED_OPACITY = 0.5;
 
-// design catFallback (name -> tile rgb + art)
-export const CAT_STYLE: Record<CategoryKey, { bg: string; img: string; label: string }> = {
-  work: { bg: '92,164,235', img: asset('assets/shop/business.png'), label: 'Work' },
-  health: { bg: '41,179,107', img: asset('assets/areas/biology.png'), label: 'Health' },
-  finance: { bg: '253,188,111', img: asset('assets/subjects/economics.png'), label: 'Finance' },
-  personal: { bg: '251,109,134', img: asset('assets/areas/psychology.png'), label: 'Personal' },
-  learning: { bg: '109,140,219', img: asset('assets/shop/philosophy.png'), label: 'Learning' },
-};
-// design catDefs
-const CAT_DEFS: [string, string, string][] = [
-  ['all', 'All', '#8E8E93'], ['work', 'Work', '#5B8DEF'], ['health', 'Health', '#3FCF86'],
-  ['personal', 'Personal', '#FF6FB0'], ['finance', 'Finance', '#F5C24B'], ['learning', 'Learning', '#9B7BFF'],
-];
-export const CAT_COLOR: Record<CategoryKey, string> = {
-  work: '#5B8DEF', health: '#3FCF86', personal: '#FF6FB0', finance: '#F5C24B', learning: '#9B7BFF',
-};
+// category cards come from the store (user can add/edit/delete them)
+export interface CardStyle { bg: string; img: string; label: string }
+export function cardFor(name: string): CardStyle {
+  const cards = getState().cards;
+  const c = cards.find((x) => x.name === name);
+  // unknown category (e.g. its card was deleted): show it neutrally, never as another card
+  return c ? { bg: c.rgb, img: asset(c.img), label: c.name } : { bg: '142,142,147', img: '', label: name };
+}
+export const cardColor = (name: string) => `rgb(${cardFor(name).bg})`;
+
 // design pri
 const PRI: Record<Priority, { icon: string; color: string }> = {
   low: { icon: 'spa', color: '#5BE0A0' },
@@ -65,7 +59,7 @@ const stagger = (i: number) => `${(catTick % 2) ? 'listInB' : 'listInA'} .44s cu
 
 // ---- the task card (verbatim; shared by Tasks / Calendar / Search) ----
 export function taskCard(t: Task, occ: string, i: number): string {
-  const cs = CAT_STYLE[t.category];
+  const cs = cardFor(t.category);
   const done = isDone(t.id, occ);
   const p = PRI[t.priority];
   const overdue = occ < todayISO() && !done;
@@ -100,11 +94,14 @@ export function taskCard(t: Task, occ: string, i: number): string {
     </div>`;
 }
 
-// category filter chips (verbatim)
+// category filter chips (verbatim markup, driven by the store's cards)
 function catChips(): string {
-  return CAT_DEFS.map(([k, l, c]) => {
-    const on = cat === k, cr = hexRgb(c);
-    return `<div data-action="cat" data-cat="${k}" style="flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; font-size:13.5px; font-weight:700; background:${on ? `rgba(${cr},0.16)` : '#FFFFFF'}; color:${on ? '#1C1C1E' : '#3C3C43'}; border:1px solid ${on ? 'transparent' : 'rgba(60,60,67,0.1)'}; transition:background .25s ease, color .25s ease, border-color .25s ease; cursor:pointer;"><span style="width:8px; height:8px; border-radius:50%; background:${c}; flex:0 0 auto;"></span>${l}</div>`;
+  const defs: [string, string, string][] = [['all', 'All', '#8E8E93'],
+    ...getState().cards.map((c) => [c.name, c.name, `rgb(${c.rgb})`] as [string, string, string])];
+  return defs.map(([k, l, c]) => {
+    const on = cat === k;
+    const cr = c.startsWith('rgb(') ? c.slice(4, -1) : hexRgb(c);
+    return `<div data-action="cat" data-cat="${esc(k)}" style="flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; font-size:13.5px; font-weight:700; background:${on ? `rgba(${cr},0.16)` : '#FFFFFF'}; color:${on ? '#1C1C1E' : '#3C3C43'}; border:1px solid ${on ? 'transparent' : 'rgba(60,60,67,0.1)'}; transition:background .25s ease, color .25s ease, border-color .25s ease; cursor:pointer;"><span style="width:8px; height:8px; border-radius:50%; background:${c}; flex:0 0 auto;"></span>${esc(l)}</div>`;
   }).join('');
 }
 
@@ -161,7 +158,7 @@ export function renderCalendar(): string {
     const k = keyOf(dt);
     const on = k === sel, isTd = k === today;
     const dots = tasksOn(k).slice(0, 3).map((t) =>
-      `<span style="width:6px; height:6px; border-radius:50%; background:${CAT_COLOR[t.category]}; box-shadow:${on ? '0 0 0 1px #fff' : 'none'};"></span>`).join('');
+      `<span style="width:6px; height:6px; border-radius:50%; background:${cardColor(t.category)}; box-shadow:${on ? '0 0 0 1px #fff' : 'none'};"></span>`).join('');
     days.push(`
       <div data-action="cal-day" data-date="${k}" style="flex:0 0 auto; width:62px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 0 10px; border-radius:22px; background:${on ? AC : isTd ? `rgba(${AC_RGB},0.1)` : '#FFFFFF'}; border:${on ? '2px' : isTd ? '2px' : '1px'} solid ${on ? AC : isTd ? AC : 'rgba(60,60,67,0.1)'}; box-shadow:${on ? `0 8px 20px ${AC_GLOW}` : '0 2px 6px rgba(30,30,40,0.05)'}; transition:background .25s ease, border-color .25s ease, box-shadow .25s ease; cursor:pointer;">
         <span style="font-size:12.5px; font-weight:700; letter-spacing:0.5px; color:${on ? 'rgba(255,255,255,0.85)' : isTd ? AC : '#8E8E93'};">${DOW[dt.getDay()]}</span>
