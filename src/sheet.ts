@@ -4,7 +4,7 @@
 
 import type { Task } from './core';
 import { addTask, updateTask, removeTask, getState, addCard, updateCard, deleteCard, type CardDef } from './store';
-import { AC, AC_RGB, cardFor } from './odyssey';
+import { AC, AC_RGB, cardFor, TAGS } from './odyssey';
 import { asset, esc, todayISO } from './util';
 
 // design library (verbatim from the handoff's designLib)
@@ -45,11 +45,6 @@ const PRIOS = [
   { label: 'Low', icon: 'spa', color: '#34B36B' },
   { label: 'Medium', icon: 'flag', color: '#F59E0B' },
   { label: 'High', icon: 'priority_high', color: '#FF3B30' },
-];
-export const TAGS: { name: string; hex: string }[] = [
-  { name: 'Appt', hex: '#34CEE9' }, { name: 'Study', hex: '#3FCF86' }, { name: 'Report', hex: '#9B7BFF' },
-  { name: 'Bills', hex: '#F5C24B' }, { name: 'Family', hex: '#E95AA8' }, { name: 'Life', hex: '#8CD647' },
-  { name: 'Workout', hex: '#FF6B5C' }, { name: 'Meeting', hex: '#5B8DEF' },
 ];
 const SWATCHES = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#34CEE9', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#8E8E93', '#A2845E'];
 

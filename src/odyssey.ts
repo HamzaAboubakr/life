@@ -12,6 +12,14 @@ export const AC_RGB = '0,122,255';
 export const AC_GLOW = `rgba(${AC_RGB},0.4)`;
 const COMPLETED_OPACITY = 0.5;
 
+// tag palette (shared with the sheet; the tag creator appends to this)
+export const TAGS: { name: string; hex: string }[] = [
+  { name: 'Appt', hex: '#34CEE9' }, { name: 'Study', hex: '#3FCF86' }, { name: 'Report', hex: '#9B7BFF' },
+  { name: 'Bills', hex: '#F5C24B' }, { name: 'Family', hex: '#E95AA8' }, { name: 'Life', hex: '#8CD647' },
+  { name: 'Workout', hex: '#FF6B5C' }, { name: 'Meeting', hex: '#5B8DEF' },
+];
+export const tagHexOf = (name: string) => TAGS.find((t) => t.name === name)?.hex ?? '#8E8E93';
+
 // category cards come from the store (user can add/edit/delete them)
 export interface CardStyle { bg: string; img: string; label: string }
 export function cardFor(name: string): CardStyle {
@@ -65,6 +73,7 @@ export function taskCard(t: Task, occ: string, i: number): string {
   const overdue = occ < todayISO() && !done;
   const opacity = done ? String(COMPLETED_OPACITY) : '1';
   const prioShift = t.priority === 'medium' ? 'translateX(1.5px)' : 'none';
+  const tag = t.tagIds?.[0];
   return `
     <div style="position:relative; margin-bottom:13px; animation:${stagger(i)};">
       <div style="position:relative; display:flex; align-items:stretch; min-height:88px; border-radius:20px; overflow:hidden; background-color:rgb(${cs.bg}); opacity:${opacity}; box-shadow:0 10px 24px rgba(30,30,40,0.10), inset 0 0 0 1px rgba(255,255,255,0.12); transition:opacity .25s ease;">
@@ -91,6 +100,7 @@ export function taskCard(t: Task, occ: string, i: number): string {
           </div>
         </div>
       </div>
+      ${tag ? `<div style="position:absolute; top:-7px; left:-5px; z-index:5; opacity:${opacity}; display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,0.32); backdrop-filter:blur(16px) saturate(180%); -webkit-backdrop-filter:blur(16px) saturate(180%); border:1px solid rgba(255,255,255,0.6); box-shadow:0 4px 12px rgba(30,30,40,0.2); font-size:11.5px; font-weight:800; color:#0B0B0C;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:13px; line-height:1; color:${tagHexOf(tag)};">sell</span>${esc(tag)}</div>` : ''}
     </div>`;
 }
 
