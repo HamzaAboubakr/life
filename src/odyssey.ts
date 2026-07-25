@@ -102,15 +102,27 @@ function catChips(): string {
     const on = cat === k;
     const cr = c.startsWith('rgb(') ? c.slice(4, -1) : hexRgb(c);
     return `<div data-action="cat" data-cat="${esc(k)}" style="flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; font-size:13.5px; font-weight:700; background:${on ? `rgba(${cr},0.16)` : '#FFFFFF'}; color:${on ? '#1C1C1E' : '#3C3C43'}; border:1px solid ${on ? 'transparent' : 'rgba(60,60,67,0.1)'}; transition:background .25s ease, color .25s ease, border-color .25s ease; cursor:pointer;"><span style="width:8px; height:8px; border-radius:50%; background:${c}; flex:0 0 auto;"></span>${esc(l)}</div>`;
-  }).join('');
+  }).join('') + donePill();
 }
 
+// Done pill — same shape as the category chips, with a check instead of a dot
+function donePill(): string {
+  const on = cat === DONE_FILTER;
+  const green = '#34C759';
+  return `<div data-action="cat" data-cat="${DONE_FILTER}" style="flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:9px 15px; border-radius:999px; font-size:13.5px; font-weight:700; background:${on ? 'rgba(52,199,89,0.16)' : '#FFFFFF'}; color:${on ? '#1C1C1E' : '#3C3C43'}; border:1px solid ${on ? 'transparent' : 'rgba(60,60,67,0.1)'}; transition:background .25s ease, color .25s ease, border-color .25s ease; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:15px; line-height:1; color:${green};">check_circle</span>Done</div>`;
+}
+
+export const DONE_FILTER = '__done';
 const catMatch = (t: Task) => cat === 'all' || t.category === cat;
+// completed tasks leave the main list and live behind the Done pill
+const showsDone = () => cat === DONE_FILTER;
+const passes = (t: Task, occ: string) =>
+  showsDone() ? isDone(t.id, occ) : (!isDone(t.id, occ) && catMatch(t));
 
 // ---- Tasks screen (verbatim) ----
 export function renderTasks(): string {
   const today = todayISO();
-  const all = getState().tasks.filter(catMatch);
+  const all = getState().tasks.filter((t) => passes(t, t.date));
   const order: Record<string, number> = { overdue: 0, today: 1, tomorrow: 2, later: 3 };
   const tmr = keyOf(new Date(parseISO(today).getTime() + 86400000));
   const grpOf = (t: Task) => (t.date < today ? 'overdue' : t.date === today ? 'today' : t.date === tmr ? 'tomorrow' : 'later');
@@ -127,8 +139,8 @@ export function renderTasks(): string {
       <div style="width:76px; height:76px; border-radius:26px; background:#FFFFFF; border:1px solid rgba(60,60,67,0.08); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 6px 18px rgba(30,30,40,0.06);">
         <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:38px; line-height:1; color:${AC};">task_alt</span>
       </div>
-      <div style="font-size:19px; font-weight:800;">All clear</div>
-      <div style="margin-top:5px; font-size:14px; color:#8E8E93; font-weight:600;">Nothing in this filter.</div>
+      <div style="font-size:19px; font-weight:800;">${showsDone() ? 'Nothing done yet' : 'All clear'}</div>
+      <div style="margin-top:5px; font-size:14px; color:#8E8E93; font-weight:600;">${showsDone() ? 'Completed tasks show up here.' : 'Nothing in this filter.'}</div>
     </div>` : '';
   return `
     <div style="animation:scrFade .3s ease;">
@@ -167,7 +179,7 @@ export function renderCalendar(): string {
       </div>`);
   }
 
-  const selTasks = tasksOn(sel).filter(catMatch);
+  const selTasks = tasksOn(sel).filter((t) => passes(t, sel));
   const isTd = sel === today;
   const selHeader = (isTd ? 'Today · ' : '') + `${FDOW[selDt.getDay()]}, ${MON[selDt.getMonth()]} ${selDt.getDate()}`;
   const n = selTasks.length;
