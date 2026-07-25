@@ -128,7 +128,7 @@ export function renderSheet(selDate: string): string {
   const timeLabel = d.time.mode === 'allday' ? 'All day'
     : d.time.mode === 'range' ? `${fmt(d.time.sh, d.time.sm, d.time.sap)} – ${fmt(d.time.eh, d.time.em, d.time.eap)}`
       : fmt(d.time.sh, d.time.sm, d.time.sap);
-  const dateLabel = d.date === todayISO() ? 'Today' : `${MON[dt.getMonth()].slice(0, 3)} ${dt.getDate()}`;
+  const dateLabel = `${MON[dt.getMonth()].slice(0, 3)} ${dt.getDate()}, ${dt.getFullYear()}`;
   const subline = `${FDOW[dt.getDay()]}, ${MON[dt.getMonth()]} ${dt.getDate()}` + (d.time.mode !== 'allday' ? ` · ${timeLabel}` : '');
 
   const linked = d.linkedIds.map((id) => getState().tasks.find((t) => t.id === id)).filter(Boolean) as Task[];
@@ -153,7 +153,7 @@ export function renderSheet(selDate: string): string {
       ? `<div data-action="sh-cancel" style="font-size:17px; font-weight:500; color:${AC}; padding:6px 4px; cursor:pointer;">Cancel</div>`
       : `<div data-action="sh-delete" style="width:42px; height:42px; border-radius:999px; background:rgba(255,59,48,0.1); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:21px; line-height:1; color:#FF3B30;">delete</span></div>`}
         <div style="font-size:17px; font-weight:700; letter-spacing:-0.3px;">${isCreate ? 'New Task' : 'Edit Task'}</div>
-        <div data-action="sh-save" style="padding:6px 4px; font-size:17px; font-weight:700; color:${AC}; cursor:pointer;">${isCreate ? 'Add' : 'Save'}</div>
+        <div data-action="sh-save" style="padding:6px 4px; font-size:17px; font-weight:700; color:${AC}; cursor:pointer;">${isCreate ? 'Add' : 'Done'}</div>
       </div>
 
       <div class="cc-scroll" style="flex:1; overflow-y:auto; padding:14px 18px 40px;">
