@@ -57,13 +57,18 @@ let tab: 'tasks' | 'calendar' = 'tasks';
 let cat = 'all';
 let sel = todayISO();
 let catTick = 0;
+let listMode: 'stagger' | 'swap' = 'stagger';
 export const getTab = () => tab;
-export const setTab = (t: 'tasks' | 'calendar') => { tab = t; catTick++; };
-export const setCat = (c: string) => { cat = c; catTick++; };
-export const setSel = (d: string) => { sel = d; };
+export const setTab = (t: 'tasks' | 'calendar') => { tab = t; catTick++; listMode = 'stagger'; clearLingering(); };
+export const setCat = (c: string) => { cat = c; catTick++; listMode = 'swap'; };
+export const setSel = (d: string) => { sel = d; listMode = 'swap'; };
 export const getSel = () => sel;
 
-const stagger = (i: number) => `${(catTick % 2) ? 'listInB' : 'listInA'} .44s cubic-bezier(.22,.9,.25,1) ${Math.min(i * 45, 340)}ms both`;
+const stagger = (i: number) =>
+  listMode === 'swap' ? 'none'
+    : `${(catTick % 2) ? 'listInB' : 'listInA'} .44s cubic-bezier(.22,.9,.25,1) ${Math.min(i * 45, 340)}ms both`;
+// wraps the list when swapping filters/days so the whole set moves as one
+const listWrap = () => (listMode === 'swap' ? 'animation:listSwap .24s cubic-bezier(.22,.9,.25,1);' : '');
 
 // ---- the task card (verbatim; shared by Tasks / Calendar / Search) ----
 export function taskCard(t: Task, occ: string, i: number): string {
@@ -90,7 +95,7 @@ export function taskCard(t: Task, occ: string, i: number): string {
       ? `<span style="position:absolute; bottom:11px; right:12px; z-index:4; font-size:10.5px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase; padding:4px 10px; border-radius:8px; background:#FF3B30; color:#fff; white-space:nowrap; box-shadow:0 3px 10px rgba(255,59,48,0.45);">Overdue</span>`
       : `<div style="position:absolute; bottom:11px; right:12px; z-index:4; width:30px; height:30px; border-radius:50%; background:rgba(16,18,24,0.5); backdrop-filter:blur(8px) saturate(140%); -webkit-backdrop-filter:blur(8px) saturate(140%); border:1px solid rgba(255,255,255,0.35); box-shadow:inset 0 1px 0.5px rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:18px; line-height:1; color:${p.color}; display:inline-block; transform:${prioShift};">${p.icon}</span></div>`}
         <div data-action="open" data-id="${t.id}" style="position:relative; z-index:2; flex:1; min-width:0; display:flex; align-items:center; gap:13px; padding:16px; cursor:pointer;">
-          <div data-action="toggle" data-id="${t.id}" data-date="${occ}" style="flex:0 0 27px; height:27px; border-radius:50%; border:2px solid ${done ? '#FFFFFF' : 'rgba(255,255,255,0.85)'}; background:${done ? '#FFFFFF' : 'rgba(255,255,255,0.18)'}; display:flex; align-items:center; justify-content:center;">
+          <div data-action="toggle" data-id="${t.id}" data-date="${occ}" style="flex:0 0 27px; height:27px; border-radius:50%; border:2px solid ${done ? '#FFFFFF' : 'rgba(255,255,255,0.85)'}; background:${done ? '#FFFFFF' : 'rgba(255,255,255,0.18)'}; display:flex; align-items:center; justify-content:center; transition:background .22s ease, border-color .22s ease;">
             ${done ? `<span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1,'wght' 600; font-size:17px; line-height:1; color:#0B0B0C; animation:ckPop .28s ease;">check</span>` : ''}
           </div>
           <div style="flex:1; min-width:0; overflow:hidden;">
@@ -123,11 +128,17 @@ function donePill(): string {
 }
 
 export const DONE_FILTER = '__done';
+// A card checked on this page stays put (struck through) until you navigate away.
+const lingering = new Set<string>();
+export const noteCompleted = (id: string) => lingering.add(id);
+export const clearLingering = () => lingering.clear();
 const catMatch = (t: Task) => cat === 'all' || t.category === cat;
 // completed tasks leave the main list and live behind the Done pill
 const showsDone = () => cat === DONE_FILTER;
-const passes = (t: Task, occ: string) =>
-  showsDone() ? isDone(t.id, occ) : (!isDone(t.id, occ) && catMatch(t));
+const passes = (t: Task, occ: string) => {
+  const done = isDone(t.id, occ), held = lingering.has(t.id);
+  return showsDone() ? (done && !held) : ((!done || held) && catMatch(t));
+};
 
 // ---- Tasks screen (verbatim) ----
 export function renderTasks(): string {
@@ -159,12 +170,12 @@ export function renderTasks(): string {
           <div style="font-size:32px; font-weight:800; letter-spacing:-0.9px; line-height:1.05;">Tasks</div>
           <div style="margin-top:3px; font-size:14px; font-weight:600; color:#8E8E93;">${todayLabel}</div>
         </div>
-        <div data-action="search-open" style="width:38px; height:38px; border-radius:50%; background:#FFFFFF; border:1px solid rgba(60,60,67,0.09); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(30,30,40,0.05); cursor:pointer;">
-          <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'wght' 500; font-size:21px; color:#636366;">search</span>
+        <div data-action="search-open" style="width:46px; height:46px; margin:-4px -4px 0 0; border-radius:50%; background:#FFFFFF; border:1px solid rgba(60,60,67,0.09); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(30,30,40,0.05); cursor:pointer;">
+          <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'wght' 500; font-size:24px; color:#636366;">search</span>
         </div>
       </div>
       <div class="cc-scroll" style="display:flex; gap:8px; overflow-x:auto; margin:12px 0 18px; padding:6px 20px 8px;">${catChips()}</div>
-      <div style="padding:0 20px;">${cards}${empty}</div>
+      <div style="padding:0 20px; ${listWrap()}">${cards}${empty}</div>
     </div>`;
 }
 
@@ -219,7 +230,7 @@ export function renderCalendar(): string {
         <div style="font-size:13px; font-weight:700; color:${n === 0 ? '#8E8E93' : AC};">${countLabel}</div>
       </div>
       <div class="cc-scroll" style="display:flex; gap:8px; overflow-x:auto; margin:0 0 14px; padding:8px 20px 8px;">${catChips()}</div>
-      <div style="padding:0 20px;">${events}${empty}</div>
+      <div style="padding:0 20px; ${listWrap()}">${events}${empty}</div>
     </div>`;
 }
 
@@ -278,13 +289,13 @@ export function renderSkeleton(): string {
 // Only the scroll-blur remains; the real device draws the status bar / Dynamic
 // Island / home indicator, so the design's simulated ones are omitted.
 export const STATUS_BAR = `
-  <div id="topblur" style="position:absolute; top:0; left:0; right:0; height:calc(env(safe-area-inset-top, 0px) + 44px); z-index:37; background:transparent; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%); mask-image:linear-gradient(180deg,#000 55%,transparent 100%); opacity:0; transition:opacity .22s ease; pointer-events:none;"></div>`;
+  <div id="topblur" style="position:absolute; top:0; left:0; right:0; height:calc(env(safe-area-inset-top, 0px) + 44px); z-index:37; background:transparent; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%); mask-image:linear-gradient(180deg,#000 55%,transparent 100%); opacity:1; pointer-events:none;"></div>`;
 
 // ---- bottom nav (verbatim) ----
 export function renderNav(): string {
   const tasksOn = tab === 'tasks', calOn = tab === 'calendar';
   return `
-    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; padding:12px 30px max(env(safe-area-inset-bottom, 0px), 12px); display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
+    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; padding:12px 30px max(calc(env(safe-area-inset-bottom, 0px) - 8px), 8px); display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
       <div data-action="tab-tasks" style="flex:1; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer;">
         <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' ${tasksOn ? 1 : 0},'wght' 500; font-size:25px; line-height:1; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">checklist</span>
         <span style="font-size:10.5px; font-weight:700; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">Tasks</span>

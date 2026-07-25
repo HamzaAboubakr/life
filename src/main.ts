@@ -1,13 +1,13 @@
 import './style.css';
 import {
   STATUS_BAR, renderNav, renderTasks, renderCalendar, renderSearch, renderSkeleton,
-  getTab, setTab, setCat, setSel, getSel,
+  getTab, setTab, setCat, setSel, getSel, noteCompleted, clearLingering,
   openSearch, closeSearch, setSearchQuery, isSearchOpen,
 } from './odyssey';
 import {
   openCreate, openEdit, openMonthFor, renderSheet, handleSheetAction, wireSheet, isSheetOpen,
 } from './sheet';
-import { completeTask, subscribe } from './store';
+import { completeTask, uncompleteTask, isDone, subscribe } from './store';
 import { seedDemoIfEmpty } from './demo';
 
 const app = document.getElementById('app')!;
@@ -91,6 +91,14 @@ app.addEventListener('click', (e) => {
   const { action, cat, id, date } = el.dataset;
   if (!action) return;
 
+  if (action === 'sh-unlink') {
+    const row = el.closest('[data-drag]') as HTMLElement | null;
+    if (row) {
+      row.classList.add('lk-out');
+      setTimeout(() => { if (handleSheetAction(action, el, sheetCtx)) renderSheetLayer(); }, 200);
+      return;
+    }
+  }
   if (action.startsWith('sh-')) {
     if (handleSheetAction(action, el, sheetCtx)) {
       renderSheetLayer();
@@ -103,11 +111,17 @@ app.addEventListener('click', (e) => {
     case 'tab-calendar': setTab('calendar'); renderScreen(); break;
     case 'cat': if (cat) { setCat(cat); renderScreen(); } break;
     case 'cal-day': if (date) { setSel(date); renderScreen(); } break;
-    case 'toggle': if (id) completeTask(id, date); break;
+    case 'toggle': {
+      if (!id) break;
+      const day = date || getSel();
+      if (isDone(id, day)) uncompleteTask(id, day);          // un-check
+      else { noteCompleted(id); completeTask(id, day); }      // mark first: completeTask re-renders synchronously
+      break;
+    }
     case 'open': if (id) { if (isSearchOpen()) { closeSearch(); renderSearchLayer(); } openEdit(id); renderSheetLayer(); } break;
     case 'add': openCreate(getTab() === 'calendar' ? getSel() : undefined); renderSheetLayer(); break;
     case 'month-open': openMonthFor('sel', getSel().slice(0, 7)); renderSheetLayer(); break;
-    case 'search-open': openSearch(); renderSearchLayer(); break;
+    case 'search-open': clearLingering(); openSearch(); renderSearchLayer(); break;
     case 'search-close': closeSearch(); renderSearchLayer(); break;
   }
 });

@@ -59,3 +59,19 @@ body {
   .frame { position: fixed; inset: 0; width: auto; height: auto; border-radius: 0; box-shadow: none; }
 }
 a { text-decoration: none; color: inherit; }
+
+/* ---- press feedback on every tappable element ---- */
+[data-action] { transition: transform .16s cubic-bezier(.2,.9,.3,1.2), opacity .16s ease; }
+[data-action]:active { transform: scale(0.96); }
+/* full-bleed scrims / containers must never scale */
+[data-action="sh-noop"], [data-action="sh-picker-close"], [data-action="sh-sub-close"],
+[data-action="modal-close"], [data-action="cal-month-close"] { transition: none; }
+[data-action="sh-noop"]:active, [data-action="sh-picker-close"]:active, [data-action="sh-sub-close"]:active,
+[data-action="modal-close"]:active, [data-action="cal-month-close"]:active { transform: none; }
+/* checkbox gets a firmer press */
+[data-action="toggle"]:active { transform: scale(0.88); }
+/* removing a linked task */
+@keyframes lkOut { to { opacity: 0; transform: translateX(-24px) scale(.96); } }
+.lk-out { animation: lkOut .22s cubic-bezier(.4,0,.6,1) forwards; }
+/* (Tasks #1) switching category cross-fades the list instead of restaging every card */
+@keyframes listSwap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

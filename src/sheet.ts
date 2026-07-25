@@ -120,11 +120,12 @@ export function renderSheet(selDate: string): string {
   const p = PRIOS[d.priority];
   const dt = parseISO(d.date);
   const tagHex = TAGS.find((t) => t.name === d.tag)?.hex ?? '#8E8E93';
-  const timeLabel = d.time.mode === 'allday' ? 'All day'
-    : d.time.mode === 'range' ? `${fmt(d.time.sh, d.time.sm, d.time.sap)} – ${fmt(d.time.eh, d.time.em, d.time.eap)}`
-      : fmt(d.time.sh, d.time.sm, d.time.sap);
+  const rangeText = `${fmt(d.time.sh, d.time.sm, d.time.sap)} – ${fmt(d.time.eh, d.time.em, d.time.eap)}`;
+  // the Date row pill just reads "Range"; the card subline still shows the times
+  const timeLabel = d.time.mode === 'allday' ? 'All day' : d.time.mode === 'range' ? 'Range' : fmt(d.time.sh, d.time.sm, d.time.sap);
+  const sublineTime = d.time.mode === 'range' ? rangeText : timeLabel;
   const dateLabel = `${MON[dt.getMonth()].slice(0, 3)} ${dt.getDate()}, ${dt.getFullYear()}`;
-  const subline = `${FDOW[dt.getDay()]}, ${MON[dt.getMonth()]} ${dt.getDate()}` + (d.time.mode !== 'allday' ? ` · ${timeLabel}` : '');
+  const subline = `${FDOW[dt.getDay()]}, ${MON[dt.getMonth()]} ${dt.getDate()}` + (d.time.mode !== 'allday' ? ` · ${sublineTime}` : '');
 
   const linked = d.linkedIds.map((id) => getState().tasks.find((t) => t.id === id)).filter(Boolean) as Task[];
   const linkMembers = linked.map((t, i) => {
@@ -136,7 +137,7 @@ export function renderSheet(selDate: string): string {
         <div style="font-size:14px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(t.title)}</div>
         <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,0.84); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(cardFor(t.category).label)}</div>
       </div>
-      <div data-action="sh-unlink" data-id="${t.id}" style="flex:0 0 auto; margin-right:9px; margin-left:2px; width:26px; height:26px; border-radius:50%; background:rgba(0,0,0,0.28); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-size:15px; line-height:1; color:#fff;">close</span></div>
+      <div data-action="sh-unlink" data-id="${t.id}" style="flex:0 0 auto; margin-right:7px; margin-left:2px; width:36px; height:36px; border-radius:50%; background:rgba(0,0,0,0.28); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-size:20px; line-height:1; color:#fff;">close</span></div>
     </div>`;
   }).join('');
 

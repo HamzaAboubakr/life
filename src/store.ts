@@ -211,6 +211,14 @@ export function completeTask(taskId: string, dateISO = todayISO()) {
   commit();
 }
 
+export function uncompleteTask(taskId: string, dateISO = todayISO()) {
+  const k = doneKey(taskId, dateISO);
+  if (!state.completed[k]) return;
+  const completed = { ...state.completed }; delete completed[k];
+  state = { ...state, completed };
+  commit();
+}
+
 export function spend(amount: number, _reason: string): boolean {
   if (amount > state.balance) return false;
   state = { ...state, balance: state.balance - amount, spentTotal: state.spentTotal + amount };
