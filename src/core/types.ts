@@ -1,17 +1,7 @@
 // Unified domain types — the single source of truth the prototype never had.
 // Tasks.dc.html and Calendar.dc.html each invented their own task shape; this is the merge.
 
-export type RankName =
-  | 'Bronze' | 'Silver' | 'Gold' | 'Diamond' | 'Titan'
-  | 'Legend' | 'Mythic' | 'Master' | 'Elite' | 'Champion';
-
-export type Tier = 1 | 2 | 3 | 4 | 5;
-
-export type CategoryKey = 'work' | 'health' | 'personal' | 'finance' | 'learning';
-
 export type Priority = 'low' | 'medium' | 'high';
-
-export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
 
 // One canonical task. Dates are ISO (YYYY-MM-DD); time is a structured object,
 // never the prose strings ("Sunday, June 28 at 9:00 AM") the mock used.
@@ -41,8 +31,6 @@ export interface Completion {
   taskId: string;
   date: string;                 // ISO date of the occurrence completed
   completedAt: string;          // ISO timestamp
-  coinsAwarded: number;
-  xpAwarded: number;
 }
 
 export interface Tag {

@@ -1,9 +1,7 @@
-// Barrel for the framework-agnostic game/domain logic. UI (Expo screens) and the
-// on-device store both import from here — one source of truth for the rules.
+// Barrel for the framework-agnostic domain logic — one source of truth for the
+// rules, shared by the store and the UI.
+//
+// The gamification modules (ranks, xp, economy, streak, achievements) were
+// removed when Odyssey dropped the game layer; it is a plain tasks/calendar app.
 export * from './types';
-export * from './ranks';
-export * from './xp';
-export * from './economy';
 export * from './recurrence';
-export * from './streak';
-export * from './achievements';
