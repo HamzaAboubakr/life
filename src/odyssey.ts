@@ -262,7 +262,7 @@ export const STATUS_BAR = `
 export function renderNav(): string {
   const tasksOn = tab === 'tasks', calOn = tab === 'calendar';
   return `
-    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; padding:12px 30px calc(env(safe-area-inset-bottom, 0px) + 12px); display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
+    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; padding:12px 30px max(env(safe-area-inset-bottom, 0px), 12px); display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
       <div data-action="tab-tasks" style="flex:1; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer;">
         <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' ${tasksOn ? 1 : 0},'wght' 500; font-size:25px; line-height:1; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">checklist</span>
         <span style="font-size:10.5px; font-weight:700; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">Tasks</span>
