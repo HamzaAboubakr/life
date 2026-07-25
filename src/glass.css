@@ -1,0 +1,287 @@
+/* ==========================================================================
+   Liquid Glass — a CSS rebuild of Apple's iOS 26/27 material.
+
+   Apple ships no web/CSS version of Liquid Glass; the native material runs
+   Metal shaders over the live composited framebuffer with gyroscope-driven
+   specular highlights. This file rebuilds it to the *published* spec:
+
+     HIG > Materials              — regular vs clear, "glass is the functional
+                                    layer, never the content layer"
+     HIG > Color                  — glass has no inherent color, tint only for
+                                    primary actions, monochrome bars
+     Adopting Liquid Glass        — concentric corners, scroll edge effect,
+                                    sheets grow opaque at full height
+     Applying Liquid Glass ...    — container spacing drives shape morphing
+
+   What is faithful:  layering, translucency + saturation lift, specular rim,
+                      content-adaptive tint, concentric radii, morph/spring
+                      motion, scroll edge ramp, accessibility fallbacks.
+   What cannot be:    motion-reactive highlights (no gyroscope in Safari) and
+                      true per-frame lensing of the framebuffer. The optional
+                      rim refraction in .lg-refract is the closest stand-in.
+   ========================================================================== */
+
+:root {
+  /* --- material ------------------------------------------------------- */
+  --lg-blur: 30px;          /* regular variant blur radius                 */
+  --lg-sat: 180%;           /* saturation lift — glass concentrates color  */
+  --lg-bright: 1.06;        /* luminosity adjust for legibility            */
+  --lg-alpha: 0.62;         /* base fill opacity                           */
+  --lg-fill: 255, 255, 255; /* base fill; overridden when glass goes dark  */
+
+  /* --- specular rim ---------------------------------------------------- */
+  --lg-rim-hi: rgba(255, 255, 255, 0.92); /* lit edge (top-left)           */
+  --lg-rim-lo: rgba(255, 255, 255, 0.18); /* shaded edge (bottom-right)    */
+  --lg-rim-w: 1px;
+
+  /* --- depth ----------------------------------------------------------- */
+  --lg-shadow: 0 8px 32px rgba(28, 28, 34, 0.10), 0 2px 8px rgba(28, 28, 34, 0.05);
+  --lg-shadow-lift: 0 18px 48px rgba(28, 28, 34, 0.16), 0 4px 12px rgba(28, 28, 34, 0.07);
+
+  /* --- concentricity ---------------------------------------------------
+     Apple: nested shapes share a center of curvature. A child's radius is
+     the parent's radius minus the gap between them. Never eyeball these. */
+  --lg-r-screen: 46px;      /* the display corner the design is drawn to   */
+  --lg-r-sheet: 38px;
+  --lg-r-panel: 26px;
+  --lg-r-control: 20px;
+  --lg-r-capsule: 999px;
+
+  /* --- motion ----------------------------------------------------------
+     The "liquid" in Liquid Glass is timing, not texture. */
+  --lg-spring: cubic-bezier(0.22, 0.9, 0.25, 1);      /* settle            */
+  --lg-spring-back: cubic-bezier(0.2, 0.9, 0.3, 1.2); /* slight overshoot  */
+  --lg-morph: 0.42s;
+  --lg-press: 0.18s;
+
+  /* --- accent (tint is reserved for primary actions) -------------------- */
+  --lg-accent: #007AFF;
+  --lg-accent-rgb: 0, 122, 255;
+}
+
+/* --------------------------------------------------------------------------
+   Base material — the regular variant.
+   "The regular variant blurs and adjusts the luminosity of background content
+   to maintain legibility." Most system components use this.
+   -------------------------------------------------------------------------- */
+.lg {
+  position: relative;
+  background-color: rgba(var(--lg-fill), var(--lg-alpha));
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) brightness(var(--lg-bright));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) brightness(var(--lg-bright));
+  box-shadow: var(--lg-shadow);
+  /* own compositing layer — keeps the card behind from flickering (All#7) */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Clear variant — "highly translucent, ideal for prioritizing visibility of
+   the underlying content." Only for glass over visually rich backgrounds. */
+.lg--clear {
+  --lg-alpha: 0.18;
+  --lg-blur: 12px;
+  --lg-sat: 200%;
+  --lg-bright: 1.02;
+}
+
+/* Apple: if the content under clear glass is bright, put a 35% dark dimming
+   layer behind the component. Apply to the element *containing* clear glass. */
+.lg-dim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+/* Thick — a sheet at full height "transitions to a more opaque appearance to
+   help maintain focus on the task." */
+.lg--thick {
+  --lg-alpha: 0.92;
+  --lg-blur: 40px;
+  --lg-sat: 140%;
+}
+
+/* Sidebars and large surfaces read more opaque "to preserve legibility over
+   complex backgrounds." */
+.lg--large {
+  --lg-alpha: 0.8;
+  --lg-blur: 36px;
+}
+
+/* --------------------------------------------------------------------------
+   Specular rim.
+   Real glass catches light on the edge facing the source and falls into shade
+   opposite it. A single flat border reads as plastic; the asymmetric gradient
+   rim is most of what sells the material.
+   -------------------------------------------------------------------------- */
+.lg-rim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--lg-rim-w);
+  background: linear-gradient(145deg, var(--lg-rim-hi) 0%, var(--lg-rim-lo) 42%,
+                                      transparent 58%, var(--lg-rim-hi) 100%);
+  /* mask-composite carves the fill out, leaving only the 1px rim */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* An inner sheen just below the top edge — light entering the material. */
+.lg-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%,
+                                      rgba(255, 255, 255, 0.08) 34%,
+                                      transparent 62%);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Interactive — "applies the same responsive and fluid reactions that glass
+   provides to standard buttons." Glass compresses and brightens under a press.
+   -------------------------------------------------------------------------- */
+.lg-interactive {
+  transition: transform var(--lg-press) var(--lg-spring-back),
+              box-shadow var(--lg-press) ease,
+              background-color var(--lg-press) ease;
+}
+.lg-interactive:active {
+  transform: scale(0.96) translateZ(0);
+  background-color: rgba(var(--lg-fill), calc(var(--lg-alpha) + 0.12));
+  box-shadow: var(--lg-shadow-lift);
+}
+
+/* --------------------------------------------------------------------------
+   Tint — "reserve it for elements that truly benefit from emphasis, such as
+   primary actions. Refrain from adding color to the background of multiple
+   controls." This is the .glassProminent equivalent.
+   -------------------------------------------------------------------------- */
+.lg-tint {
+  background-color: rgba(var(--lg-accent-rgb), 0.88);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(200%);
+  backdrop-filter: blur(var(--lg-blur)) saturate(200%);
+  box-shadow: 0 8px 24px rgba(var(--lg-accent-rgb), 0.32),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.lg-tint.lg-rim::after {
+  --lg-rim-hi: rgba(255, 255, 255, 0.65);
+  --lg-rim-lo: rgba(255, 255, 255, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Scroll edge effect.
+   "Scroll views offer a scroll edge effect that helps maintain legibility for
+   controls by obscuring content that scrolls beneath them."
+   A single blur has a hard cut where it ends; the real effect ramps. Stacking
+   masked layers of increasing blur produces a true progressive falloff.
+   -------------------------------------------------------------------------- */
+.lg-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 37;
+  transition: opacity 0.3s ease;
+}
+.lg-edge > i {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+/* each layer blurs harder and is masked to a shorter band near the edge */
+.lg-edge > i:nth-child(1) {
+  -webkit-backdrop-filter: blur(2px);  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
+}
+.lg-edge > i:nth-child(2) {
+  -webkit-backdrop-filter: blur(6px);  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 82%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 82%);
+}
+.lg-edge > i:nth-child(3) {
+  -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 32%, transparent 58%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 32%, transparent 58%);
+}
+.lg-edge > i:nth-child(4) {
+  -webkit-backdrop-filter: blur(26px) saturate(160%); backdrop-filter: blur(26px) saturate(160%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 34%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 34%);
+}
+/* bottom-anchored variant flips every ramp */
+.lg-edge--bottom > i:nth-child(1) { -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 88%, transparent 100%); mask-image: linear-gradient(0deg, #000 0%, #000 88%, transparent 100%); }
+.lg-edge--bottom > i:nth-child(2) { -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 58%, transparent 82%);  mask-image: linear-gradient(0deg, #000 0%, #000 58%, transparent 82%); }
+.lg-edge--bottom > i:nth-child(3) { -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 32%, transparent 58%);  mask-image: linear-gradient(0deg, #000 0%, #000 32%, transparent 58%); }
+.lg-edge--bottom > i:nth-child(4) { -webkit-mask-image: linear-gradient(0deg, #000 0%, transparent 34%);            mask-image: linear-gradient(0deg, #000 0%, transparent 34%); }
+
+/* --------------------------------------------------------------------------
+   Morphing.
+   "Inside a container, views blend their shapes together... the larger the
+   spacing, the sooner the effects blend and merge during a transition."
+   The web analogue of GlassEffectContainer is an SVG gooey filter: blur then
+   raise alpha contrast, so nearby shapes fuse at the edges.
+   -------------------------------------------------------------------------- */
+.lg-container {
+  filter: url(#lg-morph);
+}
+.lg-morph-in {
+  animation: lgMaterialize var(--lg-morph) var(--lg-spring) both;
+}
+@keyframes lgMaterialize {
+  from { opacity: 0; transform: scale(0.86) translateY(6px); filter: blur(6px); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* --------------------------------------------------------------------------
+   Optional rim refraction (gated — see glass.ts).
+   feDisplacementMap bends what is behind the rim, the way curved glass does.
+   Only ever applied to small, non-scrolling surfaces: a live displacement map
+   over a scrolling list is what causes repaint jank on iOS Safari.
+   -------------------------------------------------------------------------- */
+html[data-lg-refract='on'] .lg-refract::after {
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) url(#lg-lens);
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) url(#lg-lens);
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility.
+   "People can turn on accessibility settings that reduce transparency or
+   motion... Ensure you test your app's custom elements with different
+   configurations of these settings."
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  .lg {
+    --lg-alpha: 0.97;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .lg--clear { --lg-alpha: 0.92; }
+  .lg-edge { display: none; }
+}
+@media (prefers-contrast: more) {
+  .lg { --lg-alpha: 0.94; }
+  .lg-rim::after { --lg-rim-hi: rgba(0, 0, 0, 0.5); --lg-rim-lo: rgba(0, 0, 0, 0.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-morph-in { animation: none; }
+  .lg-interactive { transition: none; }
+  .lg-container { filter: none; }
+}
+
+/* No backdrop-filter support (older Safari): fall back to near-opaque fills
+   rather than leaving unreadable transparent bars. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .lg { --lg-alpha: 0.96; }
+  .lg-edge { display: none; }
+}

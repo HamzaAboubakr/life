@@ -65,9 +65,11 @@ a { text-decoration: none; color: inherit; }
 [data-action]:active { transform: scale(0.96); }
 /* full-bleed scrims / containers must never scale */
 [data-action="sh-noop"], [data-action="sh-picker-close"], [data-action="sh-sub-close"],
-[data-action="modal-close"], [data-action="cal-month-close"] { transition: none; }
+[data-action="modal-close"], [data-action="cal-month-close"],
+[data-action="export-scrim"], [data-action="export-text"] { transition: none; }
 [data-action="sh-noop"]:active, [data-action="sh-picker-close"]:active, [data-action="sh-sub-close"]:active,
-[data-action="modal-close"]:active, [data-action="cal-month-close"]:active { transform: none; }
+[data-action="modal-close"]:active, [data-action="cal-month-close"]:active,
+[data-action="export-scrim"]:active, [data-action="export-text"]:active { transform: none; }
 /* checkbox gets a firmer press */
 [data-action="toggle"]:active { transform: scale(0.88); }
 /* removing a linked task */

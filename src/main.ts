@@ -9,6 +9,10 @@ import {
 } from './sheet';
 import { completeTask, uncompleteTask, isDone, subscribe } from './store';
 import { seedDemoIfEmpty } from './demo';
+import {
+  renderExportButton, renderExportPanel, shareExport, exportJSON,
+  openExportPanel, closeExportPanel, toast,
+} from './export';
 
 const app = document.getElementById('app')!;
 
@@ -34,6 +38,7 @@ function buildShell() {
       <div id="nav"></div>
       <div id="search"></div>
       <div id="sheet"></div>
+      <div id="export"></div>
       ${renderSkeleton()}
     </div>`;
   // skeleton fades out once the first paint settles (design: skFade)
@@ -53,9 +58,18 @@ function buildShell() {
 
 function renderScreen() {
   const sc = app.querySelector('#scroll') as HTMLElement | null;
-  if (sc) sc.innerHTML = getTab() === 'tasks' ? renderTasks() : renderCalendar();
+  // The export block is a temporary migration tool bolted onto the Tasks list,
+  // not part of the design — kept out of odyssey.ts so removing it is one delete.
+  if (sc) sc.innerHTML = getTab() === 'tasks'
+    ? renderTasks() + `<div style="padding:0 20px;">${renderExportButton()}</div>`
+    : renderCalendar();
   const nav = app.querySelector('#nav') as HTMLElement | null;
   if (nav) nav.innerHTML = renderNav();
+}
+
+function renderExportLayer() {
+  const layer = app.querySelector('#export') as HTMLElement | null;
+  if (layer) layer.innerHTML = renderExportPanel();
 }
 
 function fitSearchPane() {
@@ -123,6 +137,7 @@ function render() {
   renderScreen();
   renderSearchLayer();
   renderSheetLayer();
+  renderExportLayer();
 }
 
 subscribe(() => { renderScreen(); if (isSearchOpen()) renderSearchLayer(); });
@@ -175,6 +190,28 @@ app.addEventListener('click', (e) => {
     case 'month-open': openMonthFor('sel', getSel().slice(0, 7)); renderSheetLayer(); break;
     case 'search-open': clearLingering(); openSearch(); renderSearchLayer(); break;
     case 'search-close': closeSearch(); renderSearchLayer(); break;
+
+    // ---- temporary: Stage 0 data export (remove with src/export.ts) ----
+    case 'export-share':
+      shareExport().then((r) => {
+        if (r === 'shared') toast('Shared — AirDrop it to your Mac');
+        else if (r === 'downloaded') toast('Saved to Files');
+        else if (r === 'unsupported') { openExportPanel(); renderExportLayer(); }
+      });
+      break;
+    case 'export-show': openExportPanel(); renderExportLayer(); break;
+    case 'export-scrim':
+    case 'export-close': closeExportPanel(); renderExportLayer(); break;
+    case 'export-copy': {
+      const ta = app.querySelector('[data-action="export-text"]') as HTMLTextAreaElement | null;
+      const done = () => toast('Copied');
+      navigator.clipboard?.writeText(exportJSON()).then(done).catch(() => {
+        // iOS Safari denies clipboard writes outside some gestures — fall back
+        // to selecting the text so a long-press → Copy works.
+        if (ta) { ta.focus(); ta.setSelectionRange(0, ta.value.length); }
+      });
+      break;
+    }
   }
 });
 
