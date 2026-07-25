@@ -224,7 +224,7 @@ export function renderSearch(): string {
     </div>` : '';
   return `
     <div style="position:absolute; inset:0; z-index:86; background:#F2F2F7; display:flex; flex-direction:column; animation:ccSheetIn .3s cubic-bezier(.22,.9,.25,1);">
-      <div style="height:56px; flex:0 0 auto;"></div>
+      <div style="height:calc(env(safe-area-inset-top, 0px) + 12px); flex:0 0 auto;"></div>
       <div style="flex:0 0 auto; display:flex; align-items:center; gap:11px; padding:6px 18px 12px;">
         <div style="flex:1; display:flex; align-items:center; gap:8px; padding:11px 14px; border-radius:13px; background:rgba(120,120,128,0.14);">
           <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'wght' 500; font-size:20px; line-height:1; color:#8E8E93;">search</span>
@@ -253,23 +253,16 @@ export function renderSkeleton(): string {
 }
 
 // ---- shell: status bar + dynamic island + top blur (verbatim) ----
+// Only the scroll-blur remains; the real device draws the status bar / Dynamic
+// Island / home indicator, so the design's simulated ones are omitted.
 export const STATUS_BAR = `
-  <div style="position:absolute; top:0; left:0; right:0; height:59px; z-index:38; display:flex; align-items:center; justify-content:space-between; padding:14px 34px 0; pointer-events:none;">
-    <span style="font-size:16px; font-weight:600; letter-spacing:-0.2px; color:#1C1C1E;">9:41</span>
-    <div style="display:flex; align-items:center; gap:7px;">
-      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#1C1C1E"/><rect x="5" y="5" width="3" height="7" rx="1" fill="#1C1C1E"/><rect x="10" y="2.5" width="3" height="9.5" rx="1" fill="#1C1C1E"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#1C1C1E"/></svg>
-      <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.5c2.3 0 4.4.9 6 2.4l1.1-1.2A10.3 10.3 0 0 0 8.5.8 10.3 10.3 0 0 0 1.4 3.7L2.5 4.9A8.6 8.6 0 0 1 8.5 2.5z" fill="#1C1C1E"/><path d="M8.5 6c1.3 0 2.6.5 3.5 1.5l1.2-1.2a6.7 6.7 0 0 0-9.4 0L5 7.5C5.9 6.5 7.2 6 8.5 6z" fill="#1C1C1E"/><circle cx="8.5" cy="10.1" r="1.7" fill="#1C1C1E"/></svg>
-      <svg width="28" height="13" viewBox="0 0 28 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.6" fill="none" stroke="rgba(28,28,30,0.4)"/><rect x="2.2" y="2.2" width="19.6" height="8.6" rx="2.2" fill="#1C1C1E"/><rect x="25" y="4" width="1.8" height="5" rx="0.9" fill="rgba(28,28,30,0.4)"/></svg>
-    </div>
-  </div>
-  <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:125px; height:37px; border-radius:20px; background:#000; z-index:39;"></div>
-  <div id="topblur" style="position:absolute; top:0; left:0; right:0; height:70px; z-index:37; background:transparent; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%); mask-image:linear-gradient(180deg,#000 55%,transparent 100%); opacity:0; transition:opacity .22s ease; pointer-events:none;"></div>`;
+  <div id="topblur" style="position:absolute; top:0; left:0; right:0; height:calc(env(safe-area-inset-top, 0px) + 44px); z-index:37; background:transparent; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%); mask-image:linear-gradient(180deg,#000 55%,transparent 100%); opacity:0; transition:opacity .22s ease; pointer-events:none;"></div>`;
 
 // ---- bottom nav (verbatim) ----
 export function renderNav(): string {
   const tasksOn = tab === 'tasks', calOn = tab === 'calendar';
   return `
-    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; height:94px; padding:12px 30px 30px; display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
+    <div style="position:absolute; left:0; right:0; bottom:0; z-index:40; padding:12px 30px calc(env(safe-area-inset-bottom, 0px) + 12px); display:flex; align-items:flex-start; justify-content:space-between; background:rgba(248,248,250,0.78); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%); border-top:1px solid rgba(255,255,255,0.8); box-shadow:0 -1px 0 rgba(60,60,67,0.08), 0 -8px 28px rgba(30,30,40,0.06);">
       <div data-action="tab-tasks" style="flex:1; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer;">
         <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' ${tasksOn ? 1 : 0},'wght' 500; font-size:25px; line-height:1; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">checklist</span>
         <span style="font-size:10.5px; font-weight:700; color:${tasksOn ? AC : '#8E8E93'}; transition:color .25s ease;">Tasks</span>
@@ -282,5 +275,5 @@ export function renderNav(): string {
         <span style="font-size:10.5px; font-weight:700; color:${calOn ? AC : '#8E8E93'}; transition:color .25s ease;">Calendar</span>
       </div>
     </div>
-    <div style="position:absolute; left:50%; transform:translateX(-50%); bottom:8px; z-index:44; width:134px; height:5px; border-radius:3px; background:#1C1C1E; opacity:0.28;"></div>`;
+`;
 }

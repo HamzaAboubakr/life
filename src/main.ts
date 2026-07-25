@@ -29,7 +29,7 @@ function buildShell() {
   app.innerHTML = `
     <div class="frame">
       ${STATUS_BAR}
-      <div id="scroll" class="cc-scroll" style="position:absolute; inset:0; overflow-y:auto; padding:66px 0 128px;"></div>
+      <div id="scroll" class="cc-scroll" style="position:absolute; inset:0; overflow-y:auto; padding:calc(env(safe-area-inset-top, 0px) + 14px) 0 calc(env(safe-area-inset-bottom, 0px) + 108px);"></div>
       <div id="nav"></div>
       <div id="search"></div>
       <div id="sheet"></div>

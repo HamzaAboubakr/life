@@ -147,7 +147,7 @@ export function renderSheet(selDate: string): string {
 
   return `
     <div style="position:absolute; inset:0; z-index:60; background:#F2F2F7; display:flex; flex-direction:column; ${sheetAnim()}">
-      <div style="height:56px; flex:0 0 auto;"></div>
+      <div style="height:calc(env(safe-area-inset-top, 0px) + 12px); flex:0 0 auto;"></div>
       <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 14px;">
         ${isCreate
       ? `<div data-action="sh-cancel" style="font-size:17px; font-weight:500; color:${AC}; padding:6px 4px; cursor:pointer;">Cancel</div>`

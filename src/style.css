@@ -53,8 +53,9 @@ body {
   user-select: none;
 }
 @media (max-width: 440px) {
-  html, body { height: 100%; width: 100%; overflow: hidden; position: fixed; overscroll-behavior: none; background: #F2F2F7; }
-  body { align-items: stretch; }
-  .frame { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
+  html, body { height: 100%; width: 100%; overflow: hidden; overscroll-behavior: none; background: #F2F2F7; }
+  body { display: block; }
+  /* fixed inset:0 guarantees full-screen coverage in iOS standalone (no bottom gap) */
+  .frame { position: fixed; inset: 0; width: auto; height: auto; border-radius: 0; box-shadow: none; }
 }
 a { text-decoration: none; color: inherit; }
