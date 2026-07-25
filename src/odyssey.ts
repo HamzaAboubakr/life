@@ -245,9 +245,11 @@ export const setSearchQuery = (q: string) => { searchQuery = q; };
 export function renderSearch(): string {
   if (!searchOpen) return '';
   const q = searchQuery.trim().toLowerCase();
-  const results = q ? getState().tasks.filter((t) => t.title.toLowerCase().includes(q)) : [];
+  // with no query, show everything that exists
+  const all = getState().tasks;
+  const results = q ? all.filter((t) => t.title.toLowerCase().includes(q)) : all;
   const cards = results.map((t, i) => taskCard(t, t.date, i)).join('');
-  const empty = q && results.length === 0 ? `
+  const empty = results.length === 0 ? `
     <div style="padding:60px 20px; text-align:center;">
       <div style="width:76px; height:76px; border-radius:26px; background:#FFFFFF; border:1px solid rgba(60,60,67,0.08); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 6px 18px rgba(30,30,40,0.06);">
         <span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:36px; line-height:1; color:#C7C7CC;">search_off</span>
@@ -256,7 +258,7 @@ export function renderSearch(): string {
       <div style="margin-top:5px; font-size:14px; color:#8E8E93; font-weight:600;">Try a different search.</div>
     </div>` : '';
   return `
-    <div style="position:absolute; inset:0; z-index:86; background:#F2F2F7; display:flex; flex-direction:column; animation:ccSheetIn .3s cubic-bezier(.22,.9,.25,1);">
+    <div id="searchpane" style="position:absolute; top:0; left:0; right:0; height:100%; z-index:86; background:#F2F2F7; display:flex; flex-direction:column; animation:ccSheetIn .3s cubic-bezier(.22,.9,.25,1);">
       <div style="height:calc(env(safe-area-inset-top, 0px) + 12px); flex:0 0 auto;"></div>
       <div style="flex:0 0 auto; display:flex; align-items:center; gap:11px; padding:6px 18px 12px;">
         <div style="flex:1; display:flex; align-items:center; gap:8px; padding:11px 14px; border-radius:13px; background:rgba(120,120,128,0.14);">

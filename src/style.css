@@ -13,7 +13,7 @@
 @keyframes ccScrimOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes listInA { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes listInB { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes lkInA { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes lkInA { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes lkInB { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 @keyframes ccRise { from { transform: translateY(2.5%); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
 @keyframes ccScrim { from { opacity: 0; } to { opacity: 1; } }
@@ -75,3 +75,12 @@ a { text-decoration: none; color: inherit; }
 .lk-out { animation: lkOut .22s cubic-bezier(.4,0,.6,1) forwards; }
 /* (Tasks #1) switching category cross-fades the list instead of restaging every card */
 @keyframes listSwap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* (All#10) time-selector polish */
+.seg { transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.tside { transition: background .2s ease, border-color .2s ease, transform .16s cubic-bezier(.2,.9,.3,1.2); }
+.wheel { scroll-behavior: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.wheel > div { transition: opacity .18s ease, transform .18s ease; }
+/* (All#7) keep sheets on their own compositing layer so the card behind can't flicker */
+.sheet-layer, .picker-box { transform: translateZ(0); will-change: transform; }
+.picker-box { backface-visibility: hidden; }

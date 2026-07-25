@@ -142,7 +142,7 @@ export function renderSheet(selDate: string): string {
   }).join('');
 
   return `
-    <div style="position:absolute; inset:0; z-index:60; background:#F2F2F7; display:flex; flex-direction:column; ${sheetAnim()}">
+    <div class="sheet-layer" style="position:absolute; inset:0; z-index:60; background:#F2F2F7; display:flex; flex-direction:column; ${sheetAnim()}">
       <div style="height:calc(env(safe-area-inset-top, 0px) + 12px); flex:0 0 auto;"></div>
       <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 14px;">
         ${isCreate
@@ -247,7 +247,7 @@ export function renderSheet(selDate: string): string {
 const scrim = (z: number, inner: string) => `
   <div data-action="sh-picker-close" style="position:absolute; inset:0; z-index:${z}; background:rgba(0,0,0,0.35); ${scrimAnim()} display:flex; flex-direction:column; justify-content:flex-end;">${inner}</div>`;
 const sheetBox = (inner: string, pad = '') =>
-  `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; max-height:82%; display:flex; flex-direction:column; ${pad} ${pickAnim()}">${inner}</div>`;
+  `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; max-height:82%; display:flex; flex-direction:column; ${pad} ${pickAnim()}">${inner}</div>`;
 const grabber = `<div style="width:38px; height:5px; border-radius:3px; background:rgba(60,60,67,0.2); margin:12px auto 0;"></div>`;
 
 function cardPicker(d: Draft): string {
@@ -304,7 +304,7 @@ function namingSheet(): string {
       : `<span style="flex:0 0 auto; margin-left:auto; display:inline-flex; width:18px; height:18px; border-radius:50%; border:1.5px solid rgba(60,60,67,0.22);"></span>`}
     </div>`;
   }).join('');
-  return scrim(80, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; display:flex; flex-direction:column; ${pickAnim()} padding:18px 18px 30px; max-height:90vh; overflow-y:auto;">
+  return scrim(80, `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; display:flex; flex-direction:column; ${pickAnim()} padding:18px 18px 30px; max-height:90vh; overflow-y:auto;">
     <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 2px 14px;">${editingCardIdx != null ? 'Edit Category' : 'Name your category'}</div>
     <div style="position:relative; display:flex; align-items:center; min-height:96px; border-radius:18px; overflow:hidden; background:rgb(${pd.rgb}); box-shadow:0 6px 16px rgba(30,30,40,0.1);">
       <div style="position:absolute; top:0; bottom:0; right:-4px; width:46%; max-width:150px;">
@@ -346,7 +346,7 @@ function tagPicker(d: Draft): string {
 
 function tagCreate(): string {
   const sw = SWATCHES.map((h) => `<div data-action="sh-tag-swatch" data-hex="${h}" style="position:relative; aspect-ratio:1; border-radius:50%; background:${h}; box-shadow:${tagDraftHex === h ? '0 0 0 3px #fff, 0 0 0 5px ' + h : 'none'}; display:flex; align-items:center; justify-content:center; cursor:pointer;">${tagDraftHex === h ? `<span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:17px; line-height:1; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.4);">check</span>` : ''}</div>`).join('');
-  return scrim(78, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; display:flex; flex-direction:column; ${pickAnim()} padding:18px 18px 30px;">
+  return scrim(78, `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; display:flex; flex-direction:column; ${pickAnim()} padding:18px 18px 30px;">
     <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 2px 14px;">New Tag</div>
     <div style="display:flex; justify-content:center; margin-bottom:16px;">
       <div style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; background:rgba(120,120,128,0.1); border:1px solid ${tagDraftHex};"><span style="font-family:'Material Symbols Rounded'; font-variation-settings:'FILL' 1; font-size:15px; line-height:1; color:${tagDraftHex};">sell</span><span style="font-size:14.5px; font-weight:800; color:#1C1C1E;">${esc(tagDraftName || 'Tag name')}</span></div>
@@ -369,7 +369,7 @@ function linkPicker(d: Draft): string {
         <div style="margin-top:2px; font-size:11.5px; font-weight:600; color:#8E8E93; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cardFor(t.category).label}</div>
       </div>
     </div>`).join('');
-  return scrim(74, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; max-height:82%; display:flex; flex-direction:column; padding:20px 18px 0; ${pickAnim()}">
+  return scrim(74, `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; max-height:82%; display:flex; flex-direction:column; padding:20px 18px 0; ${pickAnim()}">
     <div style="display:flex; align-items:center; justify-content:space-between; margin:0 2px 15px;">
       <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px;">Add Linked Task</div>
       <div data-action="sh-picker-close" style="width:32px; height:32px; border-radius:50%; background:rgba(120,120,128,0.12); display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Rounded'; font-size:19px; line-height:1; color:#636366;">close</span></div>
@@ -399,7 +399,7 @@ function monthPicker(dateISO: string): string {
       <div style="display:flex; flex-wrap:wrap; justify-content:center; align-content:flex-start; gap:2px; width:16px; height:10px;">${dots}</div>
     </div>`);
   }
-  return scrim(82, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; padding:12px 22px 34px; ${pickAnim()}">
+  return scrim(82, `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; padding:12px 22px 34px; ${pickAnim()}">
     ${grabber.replace('margin:12px auto 0', 'margin:0 auto 18px')}
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
       <div style="font-size:28px; font-weight:800; letter-spacing:-0.6px;">${MON[m]} <span style="color:${AC};">${y}</span></div>
@@ -419,7 +419,7 @@ function timePicker(d: Draft): string {
   const modes = [['allday', 'All-day'], ['single', 'Time'], ['range', 'Range']];
   const seg = modes.map(([k, l]) => {
     const on = d.time.mode === k;
-    return `<div data-action="sh-time-mode" data-mode="${k}" style="flex:1; text-align:center; padding:10px 4px; border-radius:9px; font-size:14px; font-weight:700; color:${on ? '#1C1C1E' : '#8E8E93'}; background:${on ? '#FFFFFF' : 'transparent'}; box-shadow:${on ? '0 1px 3px rgba(30,30,40,0.14)' : 'none'}; cursor:pointer;">${l}</div>`;
+    return `<div data-action="sh-time-mode" data-mode="${k}" class="seg" style="flex:1; text-align:center; padding:10px 4px; border-radius:9px; font-size:14px; font-weight:700; color:${on ? '#1C1C1E' : '#8E8E93'}; background:${on ? '#FFFFFF' : 'transparent'}; box-shadow:${on ? '0 1px 3px rgba(30,30,40,0.14)' : 'none'}; cursor:pointer;">${l}</div>`;
   }).join('');
   const side = timeSide;
   const cur = side === 'start' ? { h: d.time.sh, m: d.time.sm, ap: d.time.sap } : { h: d.time.eh, m: d.time.em, ap: d.time.eap };
@@ -438,13 +438,13 @@ function timePicker(d: Draft): string {
         <div style="font-size:13px; font-weight:500; color:#8E8E93;">No specific time</div>
       </div>`
     : `${d.time.mode === 'range' ? `<div style="display:flex; gap:8px; margin-bottom:14px;">
-        <div data-action="sh-time-side" data-side="start" style="flex:1; text-align:center; padding:11px; border-radius:13px; background:${side === 'start' ? AC_TINT : 'rgba(120,120,128,0.1)'}; border:1.5px solid ${side === 'start' ? AC : 'transparent'}; cursor:pointer;">
+        <div data-action="sh-time-side" data-side="start" class="tside" style="flex:1; text-align:center; padding:11px; border-radius:13px; background:${side === 'start' ? AC_TINT : 'rgba(120,120,128,0.1)'}; border:1.5px solid ${side === 'start' ? AC : 'transparent'}; cursor:pointer;">
           <div style="font-size:11px; font-weight:800; letter-spacing:0.5px; color:${side === 'start' ? AC : '#8E8E93'};">START</div>
-          <div style="font-size:16px; font-weight:800; color:#1C1C1E; margin-top:2px;">${fmt(d.time.sh, d.time.sm, d.time.sap)}</div>
+          <div data-time-start style="font-size:16px; font-weight:800; color:#1C1C1E; margin-top:2px;">${fmt(d.time.sh, d.time.sm, d.time.sap)}</div>
         </div>
-        <div data-action="sh-time-side" data-side="end" style="flex:1; text-align:center; padding:11px; border-radius:13px; background:${side === 'end' ? AC_TINT : 'rgba(120,120,128,0.1)'}; border:1.5px solid ${side === 'end' ? AC : 'transparent'}; cursor:pointer;">
+        <div data-action="sh-time-side" data-side="end" class="tside" style="flex:1; text-align:center; padding:11px; border-radius:13px; background:${side === 'end' ? AC_TINT : 'rgba(120,120,128,0.1)'}; border:1.5px solid ${side === 'end' ? AC : 'transparent'}; cursor:pointer;">
           <div style="font-size:11px; font-weight:800; letter-spacing:0.5px; color:${side === 'end' ? AC : '#8E8E93'};">END</div>
-          <div style="font-size:16px; font-weight:800; color:#1C1C1E; margin-top:2px;">${fmt(d.time.eh, d.time.em, d.time.eap)}</div>
+          <div data-time-end style="font-size:16px; font-weight:800; color:#1C1C1E; margin-top:2px;">${fmt(d.time.eh, d.time.em, d.time.eap)}</div>
         </div>
       </div>` : ''}
       <div style="position:relative;">
@@ -453,7 +453,7 @@ function timePicker(d: Draft): string {
           ${col('th', hours, cur.h - 1)}${col('tm', mins, Math.round(cur.m / 5) % 12)}${col('tap', ['AM', 'PM'], cur.ap === 'AM' ? 0 : 1)}
         </div>
       </div>`;
-  return scrim(84, `<div data-action="sh-noop" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; padding:14px 20px 32px; ${pickAnim()}">
+  return scrim(84, `<div data-action="sh-noop" class="picker-box" style="background:#FFFFFF; border-top-left-radius:28px; border-top-right-radius:28px; padding:14px 20px 32px; ${pickAnim()}">
     ${grabber.replace('margin:12px auto 0', 'margin:0 auto 14px')}
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
       <div style="font-size:20px; font-weight:800; letter-spacing:-0.4px;">When</div>
@@ -475,6 +475,8 @@ export function wireSheet(root: HTMLElement, rerender: () => void) {
     let t: ReturnType<typeof setTimeout>;
     el.addEventListener('scroll', () => {
       clearTimeout(t);
+      // Patch the labels in place — re-rendering mid-scroll rebuilt the DOM and
+      // fought the momentum, which is what made the wheels feel sticky.
       t = setTimeout(() => {
         if (!draft) return;
         const idx = Math.max(0, Math.round(el.scrollTop / 42));
@@ -482,8 +484,11 @@ export function wireSheet(root: HTMLElement, rerender: () => void) {
         if (key === 'th') { const v = Math.min(11, idx) + 1; S ? (draft.time.sh = v) : (draft.time.eh = v); }
         else if (key === 'tm') { const v = Math.min(11, idx) * 5; S ? (draft.time.sm = v) : (draft.time.em = v); }
         else { const v = idx === 0 ? 'AM' : 'PM'; S ? (draft.time.sap = v as 'AM') : (draft.time.eap = v as 'AM'); }
-        rerender();
-      }, 140);
+        const st = root.querySelector('[data-time-start]');
+        if (st) st.textContent = fmt(draft.time.sh, draft.time.sm, draft.time.sap);
+        const en = root.querySelector('[data-time-end]');
+        if (en) en.textContent = fmt(draft.time.eh, draft.time.em, draft.time.eap);
+      }, 90);
     }, { passive: true });
   });
   // linked-task drag reorder

@@ -58,6 +58,14 @@ function renderScreen() {
   if (nav) nav.innerHTML = renderNav();
 }
 
+function fitSearchPane() {
+  const pane = document.getElementById('searchpane');
+  const vv = window.visualViewport;
+  if (pane && vv) pane.style.height = `${vv.height}px`;
+}
+window.visualViewport?.addEventListener('resize', fitSearchPane);
+window.visualViewport?.addEventListener('scroll', fitSearchPane);
+
 function renderSearchLayer() {
   const layer = app.querySelector('#search') as HTMLElement | null;
   if (!layer) return;
@@ -65,6 +73,7 @@ function renderSearchLayer() {
   layer.innerHTML = renderSearch();
   const input = layer.querySelector('[data-action="search-input"]') as HTMLInputElement | null;
   if (input) { input.focus(); if (wasFocused) input.setSelectionRange(input.value.length, input.value.length); }
+  fitSearchPane();
 }
 
 function renderSheetLayer() {
@@ -72,6 +81,41 @@ function renderSheetLayer() {
   if (!layer) return;
   layer.innerHTML = renderSheet(getSel());
   wireSheet(layer, renderSheetLayer);
+  wireSheetDrag(layer);
+}
+
+// Bottom sheets follow your finger downward and dismiss on a decisive drag/flick.
+function wireSheetDrag(layer: HTMLElement) {
+  layer.querySelectorAll('.picker-box').forEach((n) => {
+    const box = n as HTMLElement;
+    let y0 = 0, dy = 0, t0 = 0, dragging = false;
+    box.addEventListener('touchstart', (e) => {
+      const inner = (e.target as HTMLElement).closest('.cc-scroll, .wheel') as HTMLElement | null;
+      if (inner && inner.scrollTop > 0) return;   // let the inner list scroll first
+      dragging = true; dy = 0; y0 = e.touches[0].clientY; t0 = Date.now();
+      box.style.transition = 'none';
+    }, { passive: true });
+    box.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      dy = e.touches[0].clientY - y0;
+      const shift = dy < 0 ? dy * 0.22 : dy;      // resistance when pulling up
+      box.style.transform = `translateY(${shift}px)`;
+    }, { passive: true });
+    const end = () => {
+      if (!dragging) return;
+      dragging = false;
+      const flick = dy / Math.max(1, Date.now() - t0) > 0.6;
+      box.style.transition = 'transform .3s cubic-bezier(.22,.9,.25,1)';
+      if (dy > 110 || (flick && dy > 40)) {
+        box.style.transform = 'translateY(110%)';
+        setTimeout(() => { if (handleSheetAction('sh-picker-close', box, sheetCtx)) renderSheetLayer(); }, 210);
+      } else {
+        box.style.transform = '';
+      }
+    };
+    box.addEventListener('touchend', end, { passive: true });
+    box.addEventListener('touchcancel', end, { passive: true });
+  });
 }
 
 function render() {
@@ -100,10 +144,18 @@ app.addEventListener('click', (e) => {
     }
   }
   if (action.startsWith('sh-')) {
-    if (handleSheetAction(action, el, sheetCtx)) {
-      renderSheetLayer();
-      if (!isSheetOpen()) renderScreen();
+    const closesSheet = action === 'sh-cancel' || action === 'sh-save' || action === 'sh-delete';
+    const root = app.querySelector('.sheet-layer') as HTMLElement | null;
+    const changed = handleSheetAction(action, el, sheetCtx);
+    if (!changed) return;
+    if (closesSheet && !isSheetOpen() && root) {
+      root.style.animation = 'ccSheetOut .3s cubic-bezier(.4,0,.6,1) forwards';
+      renderScreen();
+      setTimeout(renderSheetLayer, 290);
+      return;
     }
+    renderSheetLayer();
+    if (!isSheetOpen()) renderScreen();
     return;
   }
   switch (action) {
