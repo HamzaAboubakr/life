@@ -8,6 +8,7 @@ import {
   openCreate, openEdit, openMonthFor, renderSheet, handleSheetAction, wireSheet, isSheetOpen,
 } from './sheet';
 import { completeTask, subscribe } from './store';
+import { seedDemoIfEmpty } from './demo';
 
 const app = document.getElementById('app')!;
 
@@ -120,4 +121,5 @@ app.addEventListener('input', (e) => {
   else if (a === 'search-input') { setSearchQuery((el as HTMLInputElement).value); renderSearchLayer(); }
 });
 
+seedDemoIfEmpty();
 render();

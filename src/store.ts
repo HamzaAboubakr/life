@@ -63,6 +63,7 @@ export interface State {
   owned: Record<string, true>;     // purchased cosmetic ids (chips/tags/emblems)
   purchases: number;               // total shop purchases (incl. consumables)
   cards: CardDef[];                // category cards (seeded, user can add/edit/delete)
+  seededDemo?: boolean;            // sample data has been laid down once
 }
 
 export interface NewTaskInput {
@@ -153,6 +154,8 @@ export function updateTask(id: string, patch: Partial<Omit<Task, 'id' | 'created
   state = { ...state, tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) };
   commit();
 }
+
+export function markSeeded() { state = { ...state, seededDemo: true }; commit(); }
 
 export function addCard(c: CardDef) { state = { ...state, cards: [...state.cards, c] }; commit(); }
 export function updateCard(idx: number, c: CardDef) {
